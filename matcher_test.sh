@@ -168,29 +168,75 @@ Usage()
  ======================================================================================
   Machine learning interface - Python/ONNX
 
+  0) 
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    CAUTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    The ONNXRuntime requires loading libonnxruntime.so.1.7.2 library. To load it, we have to add the following option when execute root command.
+    -e "gSystem->Load(\"$ONNX_PATH\")"
+    The option doesn't work with "alienv setenv ${O2ENV} -c root.exe" command.  (Under investigation)
+    As a temporary solution, the below steps has been performed with entering/loaded O2 environment.
+    It means that performing following steps after
+    "alienv load O2/latest" or "alienv enter O2/latest".
+    The ONNXRuntime library path, $ONNX_PATH, is set with the following line automatically. 
+    export ONNX_PATH=`locate libonnxruntime.so.1.7.2 | grep ONNXRuntime`
+    However, some environments, it doesn't work correctly.
+    If you are in that case, please check the path by yourself and write it as
+    export ONNX_PATH=/PATH_OF_ONNXRUNTIME_LIBRARY/libonnxruntime.so.1.7.2
+
+    The following is the descreption of how to use ONNX with LightGBM python module.
+    The method to generate MCH and MFT file is the same as the previous method.
+    Let's assume that all MCH and MFT outputs are in "sample_outdir".
+
   1) Generate training data file:
-    ${0##*/} --exportTrainingData NMCH_Tracks -o <outputdir>
-     Creates a traning data root file. Each entry o on the tree contains 40/42/43 parameters and 1 truth.
-     Track-pairs can be selected by the matching cut functions. See option --cutFcn.
-     TODO: Configurable training data format
+     Creates a traning data root file. Each entry on the tree contains 40/42/43 features and 1 truth for ML training.
+     If you want to change the feature set, please modify runMatching.C 
+     The 40 features set contains standard kinematic variables and track covariance matrix.
+     The 42 features set contains standard kinematic variables, covariance matrix, and MFT track chi2 and the number of clusters
+     The 43 features set contains standard kinematic variables, covariance matrix, and MFT track chi2, the number of clusters and matching chi2 score.
+     The function of track matching chi2 can be changed with--matchFcn option.
+     If you want to save cpu time and strage capacity, you can put pre-selection cut with --cutFcn.
+     Of course, you can select matching plane position with --matchPlaneZ.     
+     
+     Grammar
+     ${0##*/} --exportTrainingData <number_of_mch_tracks_for_training> -o <output_directry> --cutFcn <cut_function> --cutParam0 <cut_parameter> --matchPlaneZ <matching_plane_in_cm> --matchFcn <matching_function>
 
      Example:
-     ${0##*/} --exportTrainingData 2800 -o onnxtrain1 --cutFcn cutDistance --cutParam0 20. --matchPlaneZ -505.0 --matchFcn matchAllParams
+     matcher_test.sh --exportTrainingData 1000 -o sample_outdir --cutFcn cutDistance --cutParam0 20. --matchPlaneZ -505.0 --matchFcn matchAllParams
+     
+     After execusion of the above command, you can find the result file on sample_outdir/MLTraining_1000_MCHTracks.root. If the training sample doesn't have 1000 MCH trscks, the number in the file will be changed to the total MCH number.
 
-  2) Train with python ML model
-    You can use following ML model in python
-    LightGBM: --MLModule lightGBM
-    NN with TensorFlow: --MLModule TensorFlowNN  
-    ${0##*/} --train dummy --onPythonML --MLModule mode --trainingdata <training_data_file.root>
+    2) Train with python ML model
+       You can use following ML model in python
+       LightGBM: --MLModule lightGBM
+       NN with TensorFlow: --MLModule TensorFlowNN  
+       The trained model will be pushed into directory which can be selected with -o option.      
+       The issued model name is "lightGBM.onnx" and "tfNN.onnx" for LightGBM and NN with TensorFlow, respectively.
+       TO DO: remove dummy option
 
-     Example:
-     matcher.sh --train dummy --onPythonML --MLModule lightGBM --trainingdata outputdir/MLTraining_1000_MCHTracks.root -o outputdir
+       Grammar
+       ${0##*/} --train dummy --onPythonML --MLModule <python_model> --trainingdata <training_data_file.root> -o models
+
+       Example:
+       matcher_test.sh --train dummy --onPythonML --MLModule lightGBM --trainingdata sample_outdir/MLTraining_1000_MCHTracks.root -o models
+
+       Afetr execursion of the above command, you can find trained model file models/lightGBM.onnx
 
    3) Matching with ONNX model
-   --onnxML
-   
-   Example:
-   matcher.sh --match --matchFcn matchAllParams --cutFcn cutDistance --cutParam0 20.0 -o outputdir/ --onnxML --MLModule LightGBM.onnx  --updatecode --matchPlaneZ -505.0
+      You can apply the trained model to test sample.
+      You can use the options that used in exporting the training data step and you should put exactly the same options.
+      The other data sample for the test should be prepared. The following example assumes that the test sample is stored in test_dir       
+
+       Grammar
+       ${0##*/} --match --onnxML --MLModule <path_to_onnx_trained_model_file> -o <test_sample_directry> --cutFcn <cut_function> --cutParam0 <cut_parameter> --matchPlaneZ <matching_plane_in_cm> --matchFcn <matching_function>  
+
+      Example:
+      matcher_test.sh --match --onnxML --MLModule models/lightGBM.onnx -o sample_outdir --cutFcn cutDistance --cutParam0 20 --matchPlaneZ -505.0 --matchFcn matchAllParams
+
+
 
 END
   exit
