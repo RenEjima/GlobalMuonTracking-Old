@@ -201,7 +201,7 @@ int runMatching()
   //                             5, "ML5ParDeltas");
 
   // ML Features and names defined by separete function(s)
-  matcher.setMLFeatureFunction(MLParCov40Features, 40, "MLParCov40Features", MLParCov40FeaturesNames);
+  matcher.setMLFeatureFunction(MLParCovChiNPtsMatchingScore43Features, 43, "MLParCov43Features", MLParCovChiNPtsMatchingScore43FeaturesNames);
   //matcher.setMLFeatureFunction(MLParCovChiNPts42Features, 42, "MLParCovChiNPts42Features", MLParCovChiNPts42FeaturesNames);
 
   // Configure matcher according command line options

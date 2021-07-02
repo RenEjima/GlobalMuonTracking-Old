@@ -52,6 +52,7 @@
 using namespace TMVA;
 
 #include <iostream>
+#include "onnxruntime/core/session/experimental_onnxruntime_cxx_api.h"
 
 using MCHTrack = o2::mch::TrackParam;
 using MFTTrack = o2::mft::TrackMFT;
@@ -393,6 +394,11 @@ class MUONMatcher
   bool mCorrectMatchIgnoreCut = false; // Cut function not applied to correct match on training data
 
   string mMLInputFeaturesName[sMaxMLFeatures];
+
+  // ONNXRuntime interface
+  void runONNXRuntime(); //Finds best match with ONNXRuntime
+  std::vector<float> getTrainingVariables(const MCHTrackConv& mchTrack, const MFTTrack& mftTrack);
+  
 };
 
 //_________________________________________________________________________________________________
@@ -610,6 +616,113 @@ void MLParCovChiNPts42FeaturesNames(string* featuresNames)
 
   featuresNames[40] = "MFT_TrackChi2";
   featuresNames[41] = "MFT_NClust";
+}
+
+//_________________________________________________________________________________________________
+void MLParCovChiNPtsMatchingScore43Features(const MCHTrackConv& mchTrack, const MFTTrack& mftTrack, float* features)
+{
+
+  features[0] = mftTrack.getX();
+  features[1] = mftTrack.getY();
+  features[2] = mftTrack.getPhi(),
+  features[3] = mftTrack.getTanl();
+  features[4] = mftTrack.getInvQPt();
+  features[5] = mftTrack.getCovariances()(0, 0);
+  features[6] = mftTrack.getCovariances()(0, 1);
+  features[7] = mftTrack.getCovariances()(1, 1);
+  features[8] = mftTrack.getCovariances()(0, 2);
+  features[9] = mftTrack.getCovariances()(1, 2);
+  features[10] = mftTrack.getCovariances()(2, 2);
+  features[11] = mftTrack.getCovariances()(0, 3);
+  features[12] = mftTrack.getCovariances()(1, 3);
+  features[13] = mftTrack.getCovariances()(2, 3);
+  features[14] = mftTrack.getCovariances()(3, 3);
+  features[15] = mftTrack.getCovariances()(0, 4);
+  features[16] = mftTrack.getCovariances()(1, 4);
+  features[17] = mftTrack.getCovariances()(2, 4);
+  features[18] = mftTrack.getCovariances()(3, 4);
+  features[19] = mftTrack.getCovariances()(4, 4);
+
+  features[20] = mchTrack.getX();
+  features[21] = mchTrack.getY();
+  features[22] = mchTrack.getPhi(),
+  features[23] = mchTrack.getTanl();
+  features[24] = mchTrack.getInvQPt();
+  features[25] = mchTrack.getCovariances()(0, 0);
+  features[26] = mchTrack.getCovariances()(0, 1);
+  features[27] = mchTrack.getCovariances()(1, 1);
+  features[28] = mchTrack.getCovariances()(0, 2);
+  features[29] = mchTrack.getCovariances()(1, 2);
+  features[30] = mchTrack.getCovariances()(2, 2);
+  features[31] = mchTrack.getCovariances()(0, 3);
+  features[32] = mchTrack.getCovariances()(1, 3);
+  features[33] = mchTrack.getCovariances()(2, 3);
+  features[34] = mchTrack.getCovariances()(3, 3);
+  features[35] = mchTrack.getCovariances()(0, 4);
+  features[36] = mchTrack.getCovariances()(1, 4);
+  features[37] = mchTrack.getCovariances()(2, 4);
+  features[38] = mchTrack.getCovariances()(3, 4);
+  features[39] = mchTrack.getCovariances()(4, 4);
+
+  features[40] = mftTrack.getTrackChi2();
+  features[41] = mftTrack.getNumberOfPoints();
+
+  features[42] = mchTrack.getMatchingChi2();
+
+}
+
+//_________________________________________________________________________________________________
+void MLParCovChiNPtsMatchingScore43FeaturesNames(string* featuresNames)
+{
+  std::cout << "Setting features names: MLParCovChiNPts42FeaturesNames" << std::endl;
+
+  featuresNames[0] = "MFT_X";
+  featuresNames[1] = "MFT_Y";
+  featuresNames[2] = "MFT_Phi";
+  featuresNames[3] = "MFT_Tanl";
+  featuresNames[4] = "MFT_InvQPt";
+  featuresNames[5] = "MFT_Cov00";
+  featuresNames[6] = "MFT_Cov01";
+  featuresNames[7] = "MFT_Cov11";
+  featuresNames[8] = "MFT_Cov02";
+  featuresNames[9] = "MFT_Cov12";
+  featuresNames[10] = "MFT_Cov22";
+  featuresNames[11] = "MFT_Cov03";
+  featuresNames[12] = "MFT_Cov13";
+  featuresNames[13] = "MFT_Cov23";
+  featuresNames[14] = "MFT_Cov33";
+  featuresNames[15] = "MFT_Cov04";
+  featuresNames[16] = "MFT_Cov14";
+  featuresNames[17] = "MFT_Cov24";
+  featuresNames[18] = "MFT_Cov34";
+  featuresNames[19] = "MFT_Cov44";
+
+  featuresNames[20] = "MCH_X";
+  featuresNames[21] = "MCH_Y";
+  featuresNames[22] = "MCH_Phi";
+  featuresNames[23] = "MCH_Tanl";
+  featuresNames[24] = "MCH_InvQPt";
+  featuresNames[25] = "MCH_Cov00";
+  featuresNames[26] = "MCH_Cov01";
+  featuresNames[27] = "MCH_Cov11";
+  featuresNames[28] = "MCH_Cov02";
+  featuresNames[29] = "MCH_Cov12";
+  featuresNames[30] = "MCH_Cov22";
+  featuresNames[31] = "MCH_Cov03";
+  featuresNames[32] = "MCH_Cov13";
+  featuresNames[33] = "MCH_Cov23";
+  featuresNames[34] = "MCH_Cov33";
+  featuresNames[35] = "MCH_Cov04";
+  featuresNames[36] = "MCH_Cov14";
+  featuresNames[37] = "MCH_Cov24";
+  featuresNames[38] = "MCH_Cov34";
+  featuresNames[39] = "MCH_Cov44";
+
+  featuresNames[40] = "MFT_TrackChi2";
+  featuresNames[41] = "MFT_NClust";
+
+  featuresNames[42] = "MatchingScore";
+  
 }
 
 #include "MUONMatcher.cxx"
