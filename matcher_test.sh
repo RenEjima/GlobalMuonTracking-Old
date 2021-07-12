@@ -171,7 +171,7 @@ Usage()
   0) 
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    CAUTION!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    !!!!!!!!!!!!!!!!!!!!!! CAUTION !!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
@@ -645,7 +645,7 @@ CUSTOM_SHM="--shm-segment-size 5000000000"
 export MCHGENERATOR=${GENERATOR}
 export ALIROOT_OCDB_ROOT=${ALIROOT_OCDB_ROOT:-$HOME/alice/OCDB}
 
-export ONNX_PATH=`locate libonnxruntime.so.1.7.2 | grep ONNXRuntime`
+export ONNX_PATH=`locate libonnxruntime.so.1.7.2 | grep local1`
 
 ALIROOTENV=${ALIROOTENV:-"AliRoot/latest-master-next-root6"}
 O2ENV=${O2ENV:-"O2/latest-dev-o2"}
