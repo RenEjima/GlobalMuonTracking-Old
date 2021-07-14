@@ -264,11 +264,13 @@ generateMCHTracks()
   echo ${NEV_} > nMCHEvents
   export NEV=${NEV_}
   rm -rf MatcherGenConfig.txt
-  alienv setenv ${ALIROOTENV} -c bash ./runtest.sh -n ${NEV_} | tee aliroot_MCHgen.log
+  #alienv setenv ${ALIROOTENV} -c bash ./runtest.sh -n ${NEV_} | tee aliroot_MCHgen.log
+  bash ./runtest.sh -n ${NEV_} | tee aliroot_MCHgen.log
 
   ## 2) aliroot conversion of MCH tracks to temporary format
   echo " Converting MCH Tracks to O2-compatible format"
-  alienv setenv ${ALIROOTENV} -c aliroot -e 'gSystem->Load("libpythia6_4_25")' -b -q -l "ConvertMCHESDTracks.C+(\".\")" | tee MCH-O2Conversion.log
+  #alienv setenv ${ALIROOTENV} -c aliroot -e 'gSystem->Load("libpythia6_4_25")' -b -q -l "ConvertMCHESDTracks.C+(\".\")" | tee MCH-O2Conversion.log
+  aliroot -e 'gSystem->Load("libpythia6_4_25")' -b -q -l "ConvertMCHESDTracks.C+(\".\")" | tee MCH-O2Conversion.log
   popd
   echo " Finished MCH track generation `realpath ${OUTDIR}`"
 
