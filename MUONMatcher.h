@@ -145,6 +145,11 @@ class MUONMatcher
   //// Hiroshima's Matching
   double matchHiroshima(const GlobalMuonTrack& mchTrack,
                         const MFTTrack& mftTrack);
+
+  //// Hiroshima's Reverse Matching
+  double matchHiroshimaReverse(const GlobalMuonTrack& mchTrack,
+                        const MFTTrack& mftTrack);
+
   //// Matching using trained ML
   double matchTrainedML(const MCHTrackConv& mchTrack,
                         const MFTTrack& mftTrack);
@@ -164,6 +169,9 @@ class MUONMatcher
     }
     if (func == &MUONMatcher::matchHiroshima) {
       mMatchingHelper.MatchingFunction = "_matchHiroshima";
+    }
+    if (func == &MUONMatcher::matchHiroshimaReverse) {
+      mMatchingHelper.MatchingFunction = "_matchHiroshimaReverse";
     }
     if (func == &MUONMatcher::matchTrainedML) {
       mMatchingHelper.MatchingFunction = "_matchML";
@@ -389,7 +397,7 @@ class MUONMatcher
   TGeoManager* mGeoManager;
   bool mMatchSaveAll = false;
   bool mChargeCutEnabled = false;
-  bool mLoadMFTOutparameters = true; 
+  bool mLoadMFTOutparameters = true;
 
   // TMVA interface
   static const std::size_t sMaxMLFeatures = 50;
@@ -405,7 +413,7 @@ class MUONMatcher
   // ONNXRuntime interface
   void runONNXRuntime(); //Finds best match with ONNXRuntime
   std::vector<float> getTrainingVariables(const MCHTrackConv& mchTrack, const MFTTrack& mftTrack);
-  
+
 };
 
 
@@ -415,7 +423,7 @@ template <typename T>
 bool MUONMatcher::propagateToNextClusterWithMCS(T& track, double z)
 {
 
-  // Propagate track to the next cluster z position, adding angular MCS effects at 
+  // Propagate track to the next cluster z position, adding angular MCS effects at
   // each MFT disk crossed by the track
 
   using o2::mft::constants::LayerZPosition;
@@ -807,7 +815,7 @@ void MLParCovChiNPtsMatchingScore43FeaturesNames(string* featuresNames)
   featuresNames[41] = "MFT_NClust";
 
   featuresNames[42] = "MatchingScore";
-  
+
 }
 
 #include "MUONMatcher.cxx"

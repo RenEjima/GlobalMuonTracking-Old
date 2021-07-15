@@ -68,6 +68,10 @@ void loadAndSetMatchingConfig()
       std::cout << " Setting " << matching_fcn << std::endl;
       matcher.setMatchingFunction(&MUONMatcher::matchHiroshima);
     }
+    if (matching_fcn.find("matchHiroshimaReverse_") < matching_fcn.length()) {
+      std::cout << " Setting " << matching_fcn << std::endl;
+      matcher.setMatchingFunction(&MUONMatcher::matchHiroshimaReverse);
+    }
     if (matching_fcn.find("trainedML_") < matching_fcn.length()) {
       std::cout << " Setting " << matching_fcn << std::endl;
       matcher.setMatchingFunction(&MUONMatcher::matchTrainedML);
@@ -123,17 +127,17 @@ void loadAndSetMatchingConfig()
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCutDistanceAndAngles);
     }
-    if (matching_cutfcn.find("cutDistanceAndAngles3Sigma_") < 
+    if (matching_cutfcn.find("cutDistanceAndAngles3Sigma_") <
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCut3SigmaXYAngles);
     }
-    if (matching_cutfcn.find("cut3Sigma_") < 
+    if (matching_cutfcn.find("cut3Sigma_") <
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCut3Sigma);
     }
-    if (matching_cutfcn.find("cutNSigma_") < 
+    if (matching_cutfcn.find("cutNSigma_") <
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCutNSigma);
