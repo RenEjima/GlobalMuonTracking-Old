@@ -340,6 +340,10 @@ class MUONMatcher
               << "] = " << param << std::endl;
   };
 
+  // ONNXRuntime interface
+  void runONNXRuntime(); //Finds best match with ONNXRuntime
+  std::vector<float> getTrainingVariables(const MCHTrackConv& mchTrack, const MFTTrack& mftTrack);
+
  private:
   // Private IO methods
   void loadMFTClusters();
@@ -410,9 +414,6 @@ class MUONMatcher
 
   string mMLInputFeaturesName[sMaxMLFeatures];
 
-  // ONNXRuntime interface
-  void runONNXRuntime(); //Finds best match with ONNXRuntime
-  std::vector<float> getTrainingVariables(const MCHTrackConv& mchTrack, const MFTTrack& mftTrack);
 
 };
 

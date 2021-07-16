@@ -2200,13 +2200,14 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
         for (auto mftTrack : mSortedMFTTracks[event]) {
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
           Truth = (int)(MFTlabel.getTrackID() == MCHlabel[0].getTrackID());
-          if ((mCorrectMatchIgnoreCut && Truth) || matchingCut(mchTrack, mftTrack)) {
-
-            setMLFeatures(mchTrack, mftTrack);
-
-            Truth ? nCorrectPairs++ : nFakesPairs++;
-            pairID++;
-            matchTree->Fill();
+          
+	  if ((mCorrectMatchIgnoreCut && Truth) || matchingCut(mchTrack, mftTrack)) {
+	    if( (Truth == 1) || ( Truth==0 && gRandom->Rndm() < 0.004 )){
+	      setMLFeatures(mchTrack, mftTrack);	    
+	      Truth ? nCorrectPairs++ : nFakesPairs++;
+	      pairID++;
+	      matchTree->Fill();
+	    }
           }
           mftTrackID++;
         } // loop mfttracks
@@ -2426,12 +2427,19 @@ void MUONMatcher::runONNXRuntime()
 std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrack,const MFTTrack& mftTrack)
 {
 
-  Float_t MFT_X      = mftTrack.getX();
+    Float_t MFT_X      = mftTrack.getX();
   Float_t MFT_Y      = mftTrack.getY();
   Float_t MFT_Phi    = mftTrack.getPhi();
   Float_t MFT_Tanl   = mftTrack.getTanl();
+  Float_t MFT_Eta    = mftTrack.getEta();
   Float_t MFT_InvQPt = mftTrack.getInvQPt();
-  Float_t MFT_QPt = mftTrack.getPt()*mftTrack.getCharge();
+  Float_t MFT_QPt    = mftTrack.getPt()*mftTrack.getCharge();
+  Float_t MFT_Pt     = 1./abs(MFT_QPt);
+  Float_t MFT_Px     = TMath::Cos(MFT_Phi) * MFT_Pt;
+  Float_t MFT_Py     = TMath::Sin(MFT_Phi) * MFT_Pt;
+  Float_t MFT_Pz     = MFT_Tanl*MFT_Pt;
+  Float_t MFT_P      = MFT_Pt * sqrt(1+MFT_Tanl*MFT_Tanl);
+  Float_t MFT_Ch     = MFT_QPt>0 ? +1 : -1;
   Float_t MFT_Cov00  = mftTrack.getCovariances()(0, 0);
   Float_t MFT_Cov01  = mftTrack.getCovariances()(0, 1);
   Float_t MFT_Cov11  = mftTrack.getCovariances()(1, 1);
@@ -2452,8 +2460,15 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MCH_Y      = mchTrack.getY();
   Float_t MCH_Phi    = mchTrack.getPhi();
   Float_t MCH_Tanl   = mchTrack.getTanl();
+  Float_t MCH_Eta   = mchTrack.getEta();
   Float_t MCH_InvQPt = mchTrack.getInvQPt();
   Float_t MCH_QPt    = mchTrack.getPt()*mchTrack.getCharge();
+  Float_t MCH_Pt     = 1./abs(MCH_QPt);
+  Float_t MCH_Px     = TMath::Cos(MCH_Phi) * MCH_Pt;
+  Float_t MCH_Py     = TMath::Sin(MCH_Phi) * MCH_Pt;
+  Float_t MCH_Pz     = MCH_Tanl*MCH_Pt;
+  Float_t MCH_P      = MCH_Pt * sqrt(1+MCH_Tanl*MCH_Tanl);
+  Float_t MCH_Ch     = MCH_QPt>0 ? +1 : -1;
   Float_t MCH_Cov00  = mchTrack.getCovariances()(0, 0);
   Float_t MCH_Cov01  = mchTrack.getCovariances()(0, 1);
   Float_t MCH_Cov11  = mchTrack.getCovariances()(1, 1);
@@ -2469,95 +2484,69 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MCH_Cov24  = mchTrack.getCovariances()(2, 4);
   Float_t MCH_Cov34  = mchTrack.getCovariances()(3, 4);
   Float_t MCH_Cov44  = mchTrack.getCovariances()(4, 4);
-
+	      
   Float_t MFT_TrackChi2   = mftTrack.getTrackChi2();
   Float_t MFT_NClust      = mftTrack.getNumberOfPoints();
-
+	      
   Float_t Delta_X      = MCH_X      - MFT_X;
   Float_t Delta_Y      = MCH_Y      - MFT_Y;
   Float_t Delta_XY     = sqrt(pow(MCH_X-MFT_X,2) + pow(MCH_Y-MFT_Y,2));
   Float_t Delta_Phi    = MCH_Phi    - MFT_Phi;
   Float_t Delta_Tanl   = MCH_Tanl   - MFT_Tanl;
+  Float_t Delta_Eta    = MCH_Eta    - MFT_Eta;
   Float_t Delta_InvQPt = MCH_InvQPt - MFT_InvQPt;
-  Float_t Delta_Cov00  = MCH_Cov00 - MFT_Cov00;
-  Float_t Delta_Cov01  = MCH_Cov01 - MFT_Cov01;
-  Float_t Delta_Cov11  = MCH_Cov11 - MFT_Cov11;
-  Float_t Delta_Cov02  = MCH_Cov02 - MFT_Cov02;
-  Float_t Delta_Cov12  = MCH_Cov12 - MFT_Cov12;
-  Float_t Delta_Cov22  = MCH_Cov22 - MFT_Cov22;
-  Float_t Delta_Cov03  = MCH_Cov03 - MFT_Cov03;
-  Float_t Delta_Cov13  = MCH_Cov13 - MFT_Cov13;
-  Float_t Delta_Cov23  = MCH_Cov23 - MFT_Cov23;
-  Float_t Delta_Cov33  = MCH_Cov33 - MFT_Cov33;
-  Float_t Delta_Cov04  = MCH_Cov04 - MFT_Cov04;
-  Float_t Delta_Cov14  = MCH_Cov14 - MFT_Cov14;
-  Float_t Delta_Cov24  = MCH_Cov24 - MFT_Cov24;
-  Float_t Delta_Cov34  = MCH_Cov34 - MFT_Cov34;
-  Float_t Delta_Cov44  = MCH_Cov44 - MFT_Cov44;
+  Float_t Delta_Pt     = MCH_Pt     - MFT_Pt;
+  Float_t Delta_Px     = MCH_Px     - MFT_Px;
+  Float_t Delta_Py     = MCH_Py     - MFT_Py;
+  Float_t Delta_Pz     = MCH_Pz     - MFT_Pz;
+  Float_t Delta_P      = MCH_P      - MFT_P ;
+  Float_t Delta_Ch     = MCH_Ch     - MFT_Ch ;
 
-  Float_t Ratio_X      = MCH_X      - MFT_X;
-  Float_t Ratio_Y      = MCH_Y      - MFT_Y;
-  Float_t Ratio_XY     = sqrt(pow(MCH_X/MFT_X,2) + pow(MCH_Y/MFT_Y,2));
-  Float_t Ratio_Phi    = MCH_Phi    - MFT_Phi;
-  Float_t Ratio_Tanl   = MCH_Tanl   - MFT_Tanl;
-  Float_t Ratio_InvQPt = MCH_InvQPt - MFT_InvQPt;
-  Float_t Ratio_Cov00  = MCH_Cov00 - MFT_Cov00;
-  Float_t Ratio_Cov01  = MCH_Cov01 - MFT_Cov01;
-  Float_t Ratio_Cov11  = MCH_Cov11 - MFT_Cov11;
-  Float_t Ratio_Cov02  = MCH_Cov02 - MFT_Cov02;
-  Float_t Ratio_Cov12  = MCH_Cov12 - MFT_Cov12;
-  Float_t Ratio_Cov22  = MCH_Cov22 - MFT_Cov22;
-  Float_t Ratio_Cov03  = MCH_Cov03 - MFT_Cov03;
-  Float_t Ratio_Cov13  = MCH_Cov13 - MFT_Cov13;
-  Float_t Ratio_Cov23  = MCH_Cov23 - MFT_Cov23;
-  Float_t Ratio_Cov33  = MCH_Cov33 - MFT_Cov33;
-  Float_t Ratio_Cov04  = MCH_Cov04 - MFT_Cov04;
-  Float_t Ratio_Cov14  = MCH_Cov14 - MFT_Cov14;
-  Float_t Ratio_Cov24  = MCH_Cov24 - MFT_Cov24;
-  Float_t Ratio_Cov34  = MCH_Cov34 - MFT_Cov34;
-  Float_t Ratio_Cov44  = MCH_Cov44 - MFT_Cov44;
 
-  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;
+  Float_t Ratio_X      = MCH_X      / MFT_X;
+  Float_t Ratio_Y      = MCH_Y      / MFT_Y;
+  Float_t Ratio_Phi    = MCH_Phi    / MFT_Phi;
+  Float_t Ratio_Tanl   = MCH_Tanl   / MFT_Tanl;
+  Float_t Ratio_Eta    = MCH_Eta    / MFT_Eta;
+  Float_t Ratio_InvQPt = MCH_InvQPt / MFT_InvQPt;
+  Float_t Ratio_Pt     = MCH_Pt     / MFT_Pt;
+  Float_t Ratio_Px     = MCH_Px     / MFT_Px;
+  Float_t Ratio_Py     = MCH_Py     / MFT_Py;
+  Float_t Ratio_Pz     = MCH_Pz     / MFT_Pz;
+  Float_t Ratio_P      = MCH_P      / MFT_P ;
+  Float_t Ratio_Ch     = MCH_Ch     / MFT_Ch;
+
+  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;	      
   Float_t MatchingScore = matchingEval(mchTrack, mftTrack);
+  
+  std::vector<float> input_tensor_values{
+    MFT_Phi,MFT_Eta,MFT_Pt,MFT_P,MFT_Ch
+      ,MCH_Phi,MCH_Eta,MCH_Pt,MCH_P,MCH_Ch
+      ,MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,MatchingScore
+      ,Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Eta,Delta_Pt,Delta_Px,Delta_Py,Delta_Pz,Delta_P,Delta_Ch
 
   /*
-  features.append(MFT_X)
-    features.append(MFT_Y)
-    features.append(MFT_Phi)
-    features.append(MFT_Tanl)
-    features.append(MFT_QPt)
-
-    features.append(MCH_X)
-    features.append(MCH_Y)
-    features.append(MCH_Phi)
-    features.append(MCH_Tanl)
-    features.append(MCH_QPt)
-
-    features.append(MFT_TrackChi2)
-    features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)
-    features.append(MatchingScore)
-
-    features.append(Delta_X)
-    features.append(Delta_Y)
-    features.append(Delta_XY)
-    features.append(Delta_Phi)
-    features.append(Delta_Tanl)
-    features.append(Delta_InvQPt)
+    MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_Pt,MFT_Px,MFT_Py,MFT_Pz,MFT_P,MFT_Ch
+    ,MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_Pt,MCH_Px,MCH_Py,MCH_Pz,MCH_P,MCH_Ch
+    ,MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,MatchingScore
+    //,MFT_Cov00,MFT_Cov01,MFT_Cov11,MFT_Cov02,MFT_Cov12,MFT_Cov22,MFT_Cov03,MFT_Cov13,MFT_Cov23,MFT_Cov33,MFT_Cov04,MFT_Cov14,MFT_Cov24,MFT_Cov34,MFT_Cov44
+    //,MCH_Cov00,MCH_Cov01,MCH_Cov11,MCH_Cov02,MCH_Cov12,MCH_Cov22,MCH_Cov03,MCH_Cov13,MCH_Cov23,MCH_Cov33,MCH_Cov04,MCH_Cov14,MCH_Cov24,MCH_Cov34,MCH_Cov44
+    ,Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_Pt,Delta_Px,Delta_Py,Delta_Pz,Delta_P,Delta_Ch
+    //,Ratio_X,Ratio_Y,Ratio_Phi,Ratio_Tanl,Ratio_Pt,Ratio_Px,Ratio_Py,Ratio_Pz,Ratio_P,Ratio_Ch
     */
-  std::vector<float> input_tensor_values{
-    MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_QPt,MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_QPt,MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,MatchingScore,Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_InvQPt
   };
-
+  
   /*
   std::vector<float> input_tensor_values{
     MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_InvQPt,MFT_Cov00,MFT_Cov01,MFT_Cov11,MFT_Cov02,MFT_Cov12,MFT_Cov22,MFT_Cov03,MFT_Cov13,MFT_Cov23,MFT_Cov33,MFT_Cov04,MFT_Cov14,MFT_Cov24,MFT_Cov34,MFT_Cov44,
     MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_InvQPt,MCH_Cov00,MCH_Cov01,MCH_Cov11,MCH_Cov02,MCH_Cov12,MCH_Cov22,MCH_Cov03,MCH_Cov13,MCH_Cov23,MCH_Cov33,MCH_Cov04,MCH_Cov14,MCH_Cov24,MCH_Cov34,MCH_Cov44,
     MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,
-      Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_InvQPt,Matching_Chi2
+      Ratio_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_InvQPt,Matching_Chi2
   };
   */
   return input_tensor_values;
+
+
 
 }
 
