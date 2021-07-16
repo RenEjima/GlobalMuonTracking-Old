@@ -47,6 +47,10 @@ import tf2onnx
 from sklearn.metrics import auc
 from sklearn.metrics import precision_recall_curve
 
+from imblearn.under_sampling import RandomUnderSampler
+
+import gc
+
 def getTrainingModel():
     return os.environ['ML_MODULE']
 
@@ -309,9 +313,19 @@ def getObjVar():
     return matchTree.array("Truth")
 
 def getData(X,y):
-    X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2,random_state=0,stratify=y)
+    X_train, X_test, y_train, y_test = train_test_split(X_sampled, y_sampled,test_size=0.2,random_state=0,stratify=y_sampled)
     X_train, X_eval, y_train, y_eval = train_test_split(X_train, y_train,test_size=0.2,random_state=0,stratify=y_train)
-
+    return X_train,y_train,X_test,y_test,X_eval,y_eval
+    
+def getSampledData(X,y):
+    print('down sampling now ...')
+    sampler = RandomUnderSampler(sampling_strategy={0: y.sum(), 1: y.sum()}, random_state=42)
+    X_sampled, y_sampled = sampler.fit_resample(X, y)
+    del X
+    del y
+    gc.collect()
+    X_train, X_test, y_train, y_test = train_test_split(X_sampled, y_sampled,test_size=0.2,random_state=0,stratify=y_sampled)
+    X_train, X_eval, y_train, y_eval = train_test_split(X_train, y_train,test_size=0.2,random_state=0,stratify=y_train)
     return X_train,y_train,X_test,y_test,X_eval,y_eval
 
 def buildModel_lightGBM():
@@ -529,7 +543,8 @@ X = getExpVar()
 y = getObjVar()
 
 rowExpVarDim,colExpVarDim = getInputDim(X)
-X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
+#X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
+X_train,y_train,X_test,y_test,X_eval,y_eval = getSampledData(X,y) #get balanced data
 
 model_type=getTrainingModel()
 
