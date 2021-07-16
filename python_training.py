@@ -47,260 +47,172 @@ import tf2onnx
 from sklearn.metrics import auc
 from sklearn.metrics import precision_recall_curve
 
+from pytorch_tabnet.tab_model import TabNetClassifier
+from pytorch_tabnet.pretraining import TabNetPretrainer
+import torch
+import torchvision
+
+import gc
+
+def LoadData():
+    print('Loading Branch as Numpy array...')
+    MFT_X      = matchTree["MFT_X"].array()
+    MFT_X      = np.array(MFT_X)
+    MFT_Y      = matchTree["MFT_Y"].array()
+    MFT_Y      = np.array(MFT_Y)
+    MFT_Phi    = matchTree["MFT_Phi"].array()
+    MFT_Phi    = np.array(MFT_Phi)
+    MFT_Tanl   = matchTree["MFT_Tanl"].array()
+    MFT_Tanl   = np.array(MFT_Tanl)
+    MFT_InvQPt = matchTree["MFT_InvQPt"].array()
+    MFT_InvQPt = np.array(MFT_InvQPt)
+    MFT_Cov00  = matchTree["MFT_Cov00"].array()
+    MFT_Cov00  = np.array(MFT_Cov00)
+    MFT_Cov01  = matchTree["MFT_Cov01"].array()
+    MFT_Cov01  = np.array(MFT_Cov01)
+    MFT_Cov11  = matchTree["MFT_Cov11"].array()
+    MFT_Cov11  = np.array(MFT_Cov11)
+    MFT_Cov02  = matchTree["MFT_Cov02"].array()
+    MFT_Cov02  = np.array(MFT_Cov02)
+    MFT_Cov12  = matchTree["MFT_Cov12"].array()
+    MFT_Cov12  = np.array(MFT_Cov12)
+    MFT_Cov22  = matchTree["MFT_Cov22"].array()
+    MFT_Cov22  = np.array(MFT_Cov22)
+    MFT_Cov03  = matchTree["MFT_Cov03"].array()
+    MFT_Cov03  = np.array(MFT_Cov03)
+    MFT_Cov13  = matchTree["MFT_Cov13"].array()
+    MFT_Cov13  = np.array(MFT_Cov13)
+    MFT_Cov23  = matchTree["MFT_Cov23"].array()
+    MFT_Cov23  = np.array(MFT_Cov23)
+    MFT_Cov33  = matchTree["MFT_Cov33"].array()
+    MFT_Cov33  = np.array(MFT_Cov33)
+    MFT_Cov04  = matchTree["MFT_Cov04"].array()
+    MFT_Cov04  = np.array(MFT_Cov04)
+    MFT_Cov14  = matchTree["MFT_Cov14"].array()
+    MFT_Cov14  = np.array(MFT_Cov14)
+    MFT_Cov24  = matchTree["MFT_Cov24"].array()
+    MFT_Cov24  = np.array(MFT_Cov24)
+    MFT_Cov34  = matchTree["MFT_Cov34"].array()
+    MFT_Cov34  = np.array(MFT_Cov34)
+    MFT_Cov44  = matchTree["MFT_Cov44"].array()
+    MFT_Cov44  = np.array(MFT_Cov44)
+    MCH_X      = matchTree["MCH_X"].array()
+    MCH_X      = np.array(MCH_X)
+    MCH_Y      = matchTree["MCH_Y"].array()
+    MCH_Y      = np.array(MCH_Y)
+    MCH_Phi    = matchTree["MCH_Phi"].array()
+    MCH_Phi    = np.array(MCH_Phi)
+    MCH_Tanl   = matchTree["MCH_Tanl"].array()
+    MCH_Tanl   = np.array(MCH_Tanl)
+    MCH_InvQPt = matchTree["MCH_InvQPt"].array()
+    MCH_InvQPt = np.array(MCH_InvQPt)
+    MCH_Cov00  = matchTree["MCH_Cov00"].array()
+    MCH_Cov00  = np.array(MCH_Cov00)
+    MCH_Cov01  = matchTree["MCH_Cov01"].array()
+    MCH_Cov01  = np.array(MCH_Cov01)
+    MCH_Cov11  = matchTree["MCH_Cov11"].array()
+    MCH_Cov11  = np.array(MCH_Cov11)
+    MCH_Cov02  = matchTree["MCH_Cov02"].array()
+    MCH_Cov02  = np.array(MCH_Cov02)
+    MCH_Cov12  = matchTree["MCH_Cov12"].array()
+    MCH_Cov12  = np.array(MCH_Cov12)
+    MCH_Cov22  = matchTree["MCH_Cov22"].array()
+    MCH_Cov22  = np.array(MCH_Cov22)
+    MCH_Cov03  = matchTree["MCH_Cov03"].array()
+    MCH_Cov03  = np.array(MCH_Cov03)
+    MCH_Cov13  = matchTree["MCH_Cov13"].array()
+    MCH_Cov13  = np.array(MCH_Cov13)
+    MCH_Cov23  = matchTree["MCH_Cov23"].array()
+    MCH_Cov23  = np.array(MCH_Cov23)
+    MCH_Cov33  = matchTree["MCH_Cov33"].array()
+    MCH_Cov33  = np.array(MCH_Cov33)
+    MCH_Cov04  = matchTree["MCH_Cov04"].array()
+    MCH_Cov04  = np.array(MCH_Cov04)
+    MCH_Cov14  = matchTree["MCH_Cov14"].array()
+    MCH_Cov14  = np.array(MCH_Cov14)
+    MCH_Cov24  = matchTree["MCH_Cov24"].array()
+    MCH_Cov24  = np.array(MCH_Cov24)
+    MCH_Cov34  = matchTree["MCH_Cov34"].array()
+    MCH_Cov34  = np.array(MCH_Cov34)
+    MCH_Cov44  = matchTree["MCH_Cov44"].array()
+    MCH_Cov44  = np.array(MCH_Cov44)
+
+    MFT_TrackChi2   = matchTree["MFT_TrackChi2"].array()
+    MFT_TrackChi2   = np.array(MFT_TrackChi2)
+    MFT_NClust      = matchTree["MFT_NClust"].array()
+    MFT_NClust      = np.array(MFT_NClust)
+    #HIROSHIMA_MATCHING_SCORE = matchTree["HIROSHIMA_MATCHING_SCORE"].array()
+    #HIROSHIMA_MATCHING_SCORE = np.array(HIROSHIMA_MATCHING_SCORE)
+
+    CorrectMatching = matchTree["Truth"].array()
+    CorrectMatching = np.array(CorrectMatching)
+
+    Delta_X      = MCH_X      - MFT_X;
+    Delta_Y      = MCH_Y      - MFT_Y;
+    Delta_XY     = np.sqrt((MCH_X-MFT_X)**2 + (MCH_Y-MFT_Y)**2)
+    Delta_Phi    = MCH_Phi    - MFT_Phi;
+    Delta_Tanl   = MCH_Tanl   - MFT_Tanl;
+    Delta_InvQPt = MCH_InvQPt - MFT_InvQPt;
+    Delta_Cov00  = MCH_Cov00 - MFT_Cov00;
+    Delta_Cov01  = MCH_Cov01 - MFT_Cov01;
+    Delta_Cov11  = MCH_Cov11 - MFT_Cov11;
+    Delta_Cov02  = MCH_Cov02 - MFT_Cov02;
+    Delta_Cov12  = MCH_Cov12 - MFT_Cov12;
+    Delta_Cov22  = MCH_Cov22 - MFT_Cov22;
+    Delta_Cov03  = MCH_Cov03 - MFT_Cov03;
+    Delta_Cov13  = MCH_Cov13 - MFT_Cov13;
+    Delta_Cov23  = MCH_Cov23 - MFT_Cov23;
+    Delta_Cov33  = MCH_Cov33 - MFT_Cov33;
+    Delta_Cov04  = MCH_Cov04 - MFT_Cov04;
+    Delta_Cov14  = MCH_Cov14 - MFT_Cov14;
+    Delta_Cov24  = MCH_Cov24 - MFT_Cov24;
+    Delta_Cov34  = MCH_Cov34 - MFT_Cov34;
+    Delta_Cov44  = MCH_Cov44 - MFT_Cov44;
+
+    Ratio_X      = MCH_X      - MFT_X;
+    Ratio_Y      = MCH_Y      - MFT_Y;
+    Ratio_XY     = np.sqrt((MCH_X-MFT_X)**2 + (MCH_Y-MFT_Y)**2)
+    Ratio_Phi    = MCH_Phi    - MFT_Phi;
+    Ratio_Tanl   = MCH_Tanl   - MFT_Tanl;
+    Ratio_InvQPt = MCH_InvQPt - MFT_InvQPt;
+    Ratio_Cov00  = MCH_Cov00 - MFT_Cov00;
+    Ratio_Cov01  = MCH_Cov01 - MFT_Cov01;
+    Ratio_Cov11  = MCH_Cov11 - MFT_Cov11;
+    Ratio_Cov02  = MCH_Cov02 - MFT_Cov02;
+    Ratio_Cov12  = MCH_Cov12 - MFT_Cov12;
+    Ratio_Cov22  = MCH_Cov22 - MFT_Cov22;
+    Ratio_Cov03  = MCH_Cov03 - MFT_Cov03;
+    Ratio_Cov13  = MCH_Cov13 - MFT_Cov13;
+    Ratio_Cov23  = MCH_Cov23 - MFT_Cov23;
+    Ratio_Cov33  = MCH_Cov33 - MFT_Cov33;
+    Ratio_Cov04  = MCH_Cov04 - MFT_Cov04;
+    Ratio_Cov14  = MCH_Cov14 - MFT_Cov14;
+    Ratio_Cov24  = MCH_Cov24 - MFT_Cov24;
+    Ratio_Cov34  = MCH_Cov34 - MFT_Cov34;
+    Ratio_Cov44  = MCH_Cov44 - MFT_Cov44;
+
+
+    MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;
+
+    print('Stacking arrays ...')
+    training_list=np.stack([MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_InvQPt,MFT_Cov00,MFT_Cov01,MFT_Cov11,MFT_Cov02,MFT_Cov12,MFT_Cov22,MFT_Cov03,MFT_Cov13,MFT_Cov23,MFT_Cov33,MFT_Cov04,MFT_Cov14,MFT_Cov24,MFT_Cov34,MFT_Cov44,
+                            MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_InvQPt,MCH_Cov00,MCH_Cov01,MCH_Cov11,MCH_Cov02,MCH_Cov12,MCH_Cov22,MCH_Cov03,MCH_Cov13,MCH_Cov23,MCH_Cov33,MCH_Cov04,MCH_Cov14,MCH_Cov24,MCH_Cov34,MCH_Cov44,
+                            MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,
+                            Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_InvQPt,Delta_Cov00,Delta_Cov01,Delta_Cov11,Delta_Cov02,Delta_Cov12,Delta_Cov22,Delta_Cov03,Delta_Cov13,Delta_Cov23,Delta_Cov33,Delta_Cov04,Delta_Cov14,Delta_Cov24,Delta_Cov34,Delta_Cov44,
+                            Ratio_X,Ratio_Y,Ratio_XY,Ratio_Phi,Ratio_Tanl,Ratio_InvQPt,Ratio_Cov00,Ratio_Cov01,Ratio_Cov11,Ratio_Cov02,Ratio_Cov12,Ratio_Cov22,Ratio_Cov03,Ratio_Cov13,Ratio_Cov23,Ratio_Cov33,Ratio_Cov04,Ratio_Cov14,Ratio_Cov24,Ratio_Cov34,Ratio_Cov44,
+                            #HIROSHIMA_MATCHING_SCORE
+                            ], axis=1);
+
+    X = training_list
+    y = CorrectMatching
+    return X,y
+
 def getTrainingModel():
     return os.environ['ML_MODULE']
-
-def getParameters():
-
-    params = []
-
-    params.append(matchTree.array("MFT_X"))
-    params.append(matchTree.array("MFT_Y"))
-    params.append(matchTree.array("MFT_Phi"))
-    params.append(matchTree.array("MFT_Tanl"))
-    params.append(matchTree.array("MFT_InvQPt"))
-    params.append(matchTree.array("MFT_Cov00"))
-    params.append(matchTree.array("MFT_Cov01"))
-    params.append(matchTree.array("MFT_Cov11"))
-    params.append(matchTree.array("MFT_Cov02"))
-    params.append(matchTree.array("MFT_Cov12"))
-    params.append(matchTree.array("MFT_Cov22"))
-    params.append(matchTree.array("MFT_Cov03"))
-    params.append(matchTree.array("MFT_Cov13"))
-    params.append(matchTree.array("MFT_Cov23"))
-    params.append(matchTree.array("MFT_Cov33"))
-    params.append(matchTree.array("MFT_Cov04"))
-    params.append(matchTree.array("MFT_Cov14"))
-    params.append(matchTree.array("MFT_Cov24"))
-    params.append(matchTree.array("MFT_Cov34"))
-    params.append(matchTree.array("MFT_Cov44"))
-
-    params.append(matchTree.array("MCH_X"))
-    params.append(matchTree.array("MCH_Y"))
-    params.append(matchTree.array("MCH_Phi"))
-    params.append(matchTree.array("MCH_Tanl"))
-    params.append(matchTree.array("MCH_InvQPt"))
-    params.append(matchTree.array("MCH_Cov00"))
-    params.append(matchTree.array("MCH_Cov01"))
-    params.append(matchTree.array("MCH_Cov11"))
-    params.append(matchTree.array("MCH_Cov02"))
-    params.append(matchTree.array("MCH_Cov12"))
-    params.append(matchTree.array("MCH_Cov22"))
-    params.append(matchTree.array("MCH_Cov03"))
-    params.append(matchTree.array("MCH_Cov13"))
-    params.append(matchTree.array("MCH_Cov23"))
-    params.append(matchTree.array("MCH_Cov33"))
-    params.append(matchTree.array("MCH_Cov04"))
-    params.append(matchTree.array("MCH_Cov14"))
-    params.append(matchTree.array("MCH_Cov24"))
-    params.append(matchTree.array("MCH_Cov34"))
-    params.append(matchTree.array("MCH_Cov44"))
-
-    params.append(matchTree.array("MFT_TrackChi2"))
-    params.append(matchTree.array("MFT_NClust"))
-
-    params.append(matchTree.array("MatchingScore"))
-
-    return np.array(params)
-
-def calcFeatures():
-
-    params = getParameters()
-
-    features = []
-
-    MFT_X = params[0]
-    MFT_Y = params[1]
-    MFT_Phi = params[2]
-    MFT_Tanl = params[3]
-    MFT_InvQPt = params[4]
-    MFT_QPt = 1./MFT_InvQPt
-
-    MCH_X = params[20]
-    MCH_Y = params[21]
-    MCH_Phi = params[22]
-    MCH_Tanl = params[23]
-    MCH_InvQPt = params[24]
-    MCH_QPt = 1./MCH_InvQPt
-
-    MFT_Cov00 = params[5]
-    MFT_Cov01 = params[6]
-    MFT_Cov11 = params[7]
-    MFT_Cov02 = params[8]
-    MFT_Cov12 = params[9]
-    MFT_Cov22 = params[10]
-    MFT_Cov03 = params[11]
-    MFT_Cov13 = params[12]
-    MFT_Cov23 = params[13]
-    MFT_Cov33 = params[14]
-    MFT_Cov04 = params[15]
-    MFT_Cov14 = params[16]
-    MFT_Cov24 = params[17]
-    MFT_Cov34 = params[18]
-    MFT_Cov44 = params[19]
-
-    MCH_Cov00 = params[25]
-    MCH_Cov01 = params[26]
-    MCH_Cov11 = params[27]
-    MCH_Cov02 = params[28]
-    MCH_Cov12 = params[29]
-    MCH_Cov22 = params[30]
-    MCH_Cov03 = params[31]
-    MCH_Cov13 = params[32]
-    MCH_Cov23 = params[33]
-    MCH_Cov33 = params[34]
-    MCH_Cov04 = params[35]
-    MCH_Cov14 = params[36]
-    MCH_Cov24 = params[37]
-    MCH_Cov34 = params[38]
-    MCH_Cov44 = params[39]
-
-    MFT_TrackChi2 = params[40]
-    MFT_NClust = params[41]
-    MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
-
-    MatchingScore = params[42]
-
-    MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
-
-    MFT_Pt = 1./np.abs(MFT_InvQPt)
-    MFT_Px = np.cos(MFT_Phi) * MFT_Pt
-    MFT_Py = np.sin(MFT_Phi) * MFT_Pt
-    MFT_Pz = MFT_Tanl * MFT_Pt
-    MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
-
-    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1)
-
-    MCH_Pt = 1./np.abs(MCH_InvQPt)
-    MCH_Px = np.cos(MCH_Phi) * MCH_Pt
-    MCH_Py = np.sin(MCH_Phi) * MCH_Pt
-    MCH_Pz = MCH_Tanl * MCH_Pt
-    MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
-
-    Delta_X = MCH_X - MFT_X
-    Delta_Y = MCH_Y - MFT_Y
-    Delta_XY = np.sqrt((MCH_X - MFT_X)**2 + (MCH_Y - MFT_Y)**2)
-    Delta_Phi = MCH_Phi - MFT_Phi
-    Delta_Tanl = MCH_Tanl - MFT_Tanl
-    Delta_InvQPt = MCH_InvQPt - MFT_InvQPt
-    Delta_Pt = MCH_Pt - MFT_Pt
-    Delta_Px = MCH_Px - MFT_Px
-    Delta_Py = MCH_Py - MFT_Py
-    Delta_Pz = MCH_Pz - MFT_Pz
-    Delta_P = MCH_P - MFT_P
-    Delta_Ch = MCH_Ch - MFT_Ch
-
-    Ratio_X = MCH_X / MFT_X
-    Ratio_Y = MCH_Y / MFT_Y
-    Ratio_Phi = MCH_Phi / MFT_Phi
-    Ratio_Tanl = MCH_Tanl / MFT_Tanl
-    Ratio_InvQPt = MCH_InvQPt / MFT_InvQPt
-    Ratio_Pt = MCH_Pt / MFT_Pt
-    Ratio_Px = MCH_Px / MFT_Px
-    Ratio_Py = MCH_Py / MFT_Py
-    Ratio_Pz = MCH_Pz / MFT_Pz
-    Ratio_P = MCH_P / MFT_P
-    Ratio_Ch = MCH_Ch / MFT_Ch
-
-    features.append(MFT_X)
-    features.append(MFT_Y)
-    features.append(MFT_Phi)
-    features.append(MFT_Tanl)
-    features.append(MFT_Pt)
-    features.append(MFT_Px)
-    features.append(MFT_Py)
-    features.append(MFT_Pz)
-    features.append(MFT_P)
-    features.append(MFT_Ch)
-
-    features.append(MCH_X)
-    features.append(MCH_Y)
-    features.append(MCH_Phi)
-    features.append(MCH_Tanl)
-    features.append(MCH_Pt)
-    features.append(MCH_Px)
-    features.append(MCH_Py)
-    features.append(MCH_Pz)
-    features.append(MCH_P)
-    features.append(MCH_Ch)
-
-    features.append(MFT_TrackChi2)
-    features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)
-    features.append(MatchingScore)
-    '''
-    features.append(MFT_Cov00)
-    features.append(MFT_Cov01)
-    features.append(MFT_Cov11)
-    features.append(MFT_Cov02)
-    features.append(MFT_Cov12)
-    features.append(MFT_Cov22)
-    features.append(MFT_Cov03)
-    features.append(MFT_Cov13)
-    features.append(MFT_Cov23)
-    features.append(MFT_Cov33)
-    features.append(MFT_Cov04)
-    features.append(MFT_Cov14)
-    features.append(MFT_Cov24)
-    features.append(MFT_Cov34)
-    features.append(MFT_Cov44)
-
-    features.append(MCH_Cov00)
-    features.append(MCH_Cov01)
-    features.append(MCH_Cov11)
-    features.append(MCH_Cov02)
-    features.append(MCH_Cov12)
-    features.append(MCH_Cov22)
-    features.append(MCH_Cov03)
-    features.append(MCH_Cov13)
-    features.append(MCH_Cov23)
-    features.append(MCH_Cov33)
-    features.append(MCH_Cov04)
-    features.append(MCH_Cov14)
-    features.append(MCH_Cov24)
-    features.append(MCH_Cov34)
-    features.append(MCH_Cov44)
-    '''
-    features.append(Delta_X)
-    features.append(Delta_Y)
-    features.append(Delta_XY)
-    features.append(Delta_Phi)
-    features.append(Delta_Tanl)
-    features.append(Delta_Pt)
-    features.append(Delta_Px)
-    features.append(Delta_Py)
-    features.append(Delta_Pz)
-    features.append(Delta_P)
-    features.append(Delta_Ch)
-    '''
-    features.append(Ratio_X)
-    features.append(Ratio_Y)
-    features.append(Ratio_Phi)
-    features.append(Ratio_Tanl)
-    features.append(Ratio_Pt)
-    features.append(Ratio_Px)
-    features.append(Ratio_Py)
-    features.append(Ratio_Pz)
-    features.append(Ratio_P)
-    features.append(Ratio_Ch)
-    '''
-    return features
-
-def getExpVar():
-    features = calcFeatures()
-    training_list = []
-    for index in range(len(features)):
-        training_list.append(features[index])
-    X = np.stack(training_list,1)
-
-    return X
 
 def getInputDim(X):
     rowExpVarDim,colExpVarDim = X.shape
     return rowExpVarDim,colExpVarDim
-
-def getObjVar():
-    return matchTree.array("Truth")
 
 def getData(X,y):
     X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2,random_state=0,stratify=y)
@@ -514,18 +426,9 @@ def showONNXInfo(model_onnx):
 ########################################################################
 ########################################################################
 
-
 #Global variables
 file = uproot.open(os.environ['ML_TRAINING_FILE'])
 matchTree = file["matchTree"]
-
-X = getExpVar()
-y = getObjVar()
-
-rowExpVarDim,colExpVarDim = getInputDim(X)
-X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
-
-model_type=getTrainingModel()
 
 def prauc(data,preds):
     precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(data, preds)
@@ -534,9 +437,24 @@ def prauc(data,preds):
     return 'PR-AUC', metric, True
 
 def main():
+    #X = getExpVar()
+    #y = getObjVar()
+    X,y=LoadData()
+    rowExpVarDim,colExpVarDim = getInputDim(X)
+    X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
+
+    model_type=getTrainingModel()
 
     if model_type == 'lightGBM':
         model = buildModel_lightGBM()
+        print(np.isfinite(X_train))
+        print(np.isfinite(y_train))
+        print(np.isfinite(X_test))
+        print(np.isfinite(y_test))
+        print(X_train)
+        print(y_train)
+        print(X_test)
+        print(y_test)
 
         #training_history = model.fit(X_train, y_train)
 
@@ -612,6 +530,53 @@ def main():
         ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
         ax.legend(loc="upper right")
         fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveXBoost.png', format="png")
+
+    elif model_type == 'TabNet':
+        del X_test
+        del y_test
+        del X_train
+        del y_train
+        gc.collect()
+        X_testvalid, X_train, y_testvalid, y_train = train_test_split(X, y,test_size=0.8,random_state=0,stratify=y)
+        X_test, X_valid, y_test, y_valid = train_test_split(X_testvalid, y_testvalid,test_size=0.5,random_state=0,stratify=y_testvalid)
+        del X
+        del y
+        del X_testvalid
+        del y_testvalid
+        gc.collect()
+        # TabNetPretrainer
+        unsupervised_model = TabNetPretrainer(
+            optimizer_fn=torch.optim.Adam,
+            optimizer_params=dict(lr=2e-2),
+            mask_type='entmax' # "sparsemax"
+        )
+
+        unsupervised_model.fit(X_train=X_train,eval_set=[X_valid],pretraining_ratio=0.8)
+
+        tab_clf = TabNetClassifier(
+            optimizer_fn=torch.optim.Adam,
+            optimizer_params=dict(lr=2e-2),
+            scheduler_params={"step_size":10, # how to use learning rate scheduler
+                              "gamma":0.9},
+            scheduler_fn=torch.optim.lr_scheduler.StepLR,
+            mask_type='sparsemax' # This will be overwritten if using pretrain model
+        )
+
+        tab_clf.fit(
+            X_train=X_train, y_train=y_train,
+            eval_set=[(X_train, y_train), (X_valid, y_valid)],
+            eval_name=['train', 'valid'],
+            eval_metric=['auc'],
+            from_unsupervised=unsupervised_model
+        )
+        #ROC, PR and AUC
+        y_proba_tab = tab_clf.predict_proba(X_test)
+
+        precision_tab, recall_tab, thresholds_tab = precision_recall_curve(y_test, y_proba_tab[:, 1])
+        area_tab = auc(recall_tab, precision_tab)
+        print ("AUPR score: %0.2f" % area_tab)
+
+        torch.onnx.export(tab_clf,'TabNet.onnx', verbose=True)
 
     elif model_type == 'tfNN':
 
