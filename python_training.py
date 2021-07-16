@@ -550,9 +550,9 @@ def main():
             eval_metric=prauc,
             eval_set=[
                 (X_train, y_train),
-                (X_test, y_test),
+                (X_eval, y_eval),
             ],
-            eval_names=['train', 'test'],
+            eval_names=['train', 'validation'],
             early_stopping_rounds=1000,
         )
 
@@ -586,7 +586,7 @@ def main():
             eval_metric='aucpr',
             eval_set=[
                 (X_train, y_train),
-                (X_test, y_test),
+                (X_eval, y_eval),
             ],
             early_stopping_rounds=1000,
         )
@@ -619,7 +619,7 @@ def main():
         ax.set_xlim([0.0, 1.2])
         ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
         ax.legend(loc="upper right")
-        fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveXBoost.png', format="png")
+        fig.savefig('MLResultPRCurveXBoost.png', format="png")
 
     elif model_type == 'tfNN':
 
