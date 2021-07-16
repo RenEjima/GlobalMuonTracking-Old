@@ -221,7 +221,6 @@ int runMatching()
 
   // ML Features and names defined by separete function(s)
   matcher.setMLFeatureFunction(MLParCovChiNPtsMatchingScore43Features, 43, "MLParCov43Features", MLParCovChiNPtsMatchingScore43FeaturesNames);
-  //matcher.setMLFeatureFunction(MLParCovChiNPts42Features, 42, "MLParCovChiNPts42Features", MLParCovChiNPts42FeaturesNames);
 
   // Configure matcher according command line options
   loadAndSetMatchingConfig();
@@ -236,16 +235,18 @@ int runMatching()
   // covariances matrix to MFT coordinate system
   matcher.initGlobalTracks();
 
-  evalMLExportOrTrain();
+  if(std::getenv("ML_EXPORTTRAINDATA")) evalMLExportOrTrain();
 
-  matcher.runEventMatching();
+  if(std::getenv("ML_ONNX")) matcher.runONNXRuntime();
+  else matcher.runEventMatching();
+  
 
   // Kalman filter
   matcher.fitTracks();
   matcher.saveGlobalMuonTracks();
 
   // Export Matching Plane views in png
-  matcher.exportNMatchingPlaneViews(10);
+  //matcher.exportNMatchingPlaneViews(10);
 
   return 0;
 }
