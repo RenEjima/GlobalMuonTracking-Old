@@ -108,7 +108,6 @@ def calcFeatures():
     MFT_InvQPt = params[4]
     MFT_QPt = 1./MFT_InvQPt
 
-
     MCH_X = params[20]
     MCH_Y = params[21]
     MCH_Phi = params[22]
@@ -153,46 +152,130 @@ def calcFeatures():
     MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
 
     MatchingScore = params[42]
+    
+    MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
 
+    MFT_Pt = 1./np.abs(MFT_InvQPt)
+    MFT_Px = np.cos(MFT_Phi) * MFT_Pt
+    MFT_Py = np.sin(MFT_Phi) * MFT_Pt
+    MFT_Pz = MFT_Tanl * MFT_Pt
+    MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
+
+    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1) 
+
+    MCH_Pt = 1./np.abs(MCH_InvQPt)
+    MCH_Px = np.cos(MCH_Phi) * MCH_Pt
+    MCH_Py = np.sin(MCH_Phi) * MCH_Pt
+    MCH_Pz = MCH_Tanl * MCH_Pt
+    MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
+    
     Delta_X = MCH_X - MFT_X
     Delta_Y = MCH_Y - MFT_Y
     Delta_XY = np.sqrt((MCH_X - MFT_X)**2 + (MCH_Y - MFT_Y)**2)
     Delta_Phi = MCH_Phi - MFT_Phi
     Delta_Tanl = MCH_Tanl - MFT_Tanl
     Delta_InvQPt = MCH_InvQPt - MFT_InvQPt
-    Delta_QPt = MCH_QPt - MFT_QPt
-    
+    Delta_Pt = MCH_Pt - MFT_Pt
+    Delta_Px = MCH_Px - MFT_Px
+    Delta_Py = MCH_Py - MFT_Py
+    Delta_Pz = MCH_Pz - MFT_Pz
+    Delta_P = MCH_P - MFT_P
+    Delta_Ch = MCH_Ch - MFT_Ch
+
     Ratio_X = MCH_X / MFT_X
     Ratio_Y = MCH_Y / MFT_Y
     Ratio_Phi = MCH_Phi / MFT_Phi
     Ratio_Tanl = MCH_Tanl / MFT_Tanl
     Ratio_InvQPt = MCH_InvQPt / MFT_InvQPt
-    Ratio_QPt = MCH_QPt / MFT_QPt
+    Ratio_Pt = MCH_Pt / MFT_Pt
+    Ratio_Px = MCH_Px / MFT_Px
+    Ratio_Py = MCH_Py / MFT_Py
+    Ratio_Pz = MCH_Pz / MFT_Pz
+    Ratio_P = MCH_P / MFT_P
+    Ratio_Ch = MCH_Ch / MFT_Ch
 
     features.append(MFT_X)
     features.append(MFT_Y)
     features.append(MFT_Phi)
     features.append(MFT_Tanl)
-    features.append(MFT_QPt)
+    features.append(MFT_Pt)
+    features.append(MFT_Px)
+    features.append(MFT_Py)
+    features.append(MFT_Pz)
+    features.append(MFT_P)
+    features.append(MFT_Ch)
 
     features.append(MCH_X)
     features.append(MCH_Y)
     features.append(MCH_Phi)
     features.append(MCH_Tanl)
-    features.append(MCH_QPt)
+    features.append(MCH_Pt)
+    features.append(MCH_Px)
+    features.append(MCH_Py)
+    features.append(MCH_Pz)
+    features.append(MCH_P)
+    features.append(MCH_Ch)
 
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)
+    features.append(MFT_TrackReducedChi2)    
     features.append(MatchingScore)
+    '''
+    features.append(MFT_Cov00)
+    features.append(MFT_Cov01)
+    features.append(MFT_Cov11)
+    features.append(MFT_Cov02)
+    features.append(MFT_Cov12)
+    features.append(MFT_Cov22)
+    features.append(MFT_Cov03)
+    features.append(MFT_Cov13)
+    features.append(MFT_Cov23)
+    features.append(MFT_Cov33)
+    features.append(MFT_Cov04)
+    features.append(MFT_Cov14)
+    features.append(MFT_Cov24)
+    features.append(MFT_Cov34)
+    features.append(MFT_Cov44)
 
+    features.append(MCH_Cov00)
+    features.append(MCH_Cov01)
+    features.append(MCH_Cov11)
+    features.append(MCH_Cov02)
+    features.append(MCH_Cov12)
+    features.append(MCH_Cov22)
+    features.append(MCH_Cov03)
+    features.append(MCH_Cov13)
+    features.append(MCH_Cov23)
+    features.append(MCH_Cov33)
+    features.append(MCH_Cov04)
+    features.append(MCH_Cov14)
+    features.append(MCH_Cov24)
+    features.append(MCH_Cov34)
+    features.append(MCH_Cov44)
+    '''
     features.append(Delta_X)
     features.append(Delta_Y)
     features.append(Delta_XY)
     features.append(Delta_Phi)
     features.append(Delta_Tanl)
-    features.append(Delta_InvQPt)
-
+    features.append(Delta_Pt)
+    features.append(Delta_Px)
+    features.append(Delta_Py)
+    features.append(Delta_Pz)
+    features.append(Delta_P)
+    features.append(Delta_Ch)
+    '''
+    features.append(Ratio_X)
+    features.append(Ratio_Y)
+    features.append(Ratio_Phi)
+    features.append(Ratio_Tanl)
+    features.append(Ratio_Pt)
+    features.append(Ratio_Px)
+    features.append(Ratio_Py)
+    features.append(Ratio_Pz)
+    features.append(Ratio_P)
+    features.append(Ratio_Ch)
+    '''
     return features
 
 def getExpVar():
@@ -218,7 +301,7 @@ def getData(X,y):
     return X_train,y_train,X_test,y_test,X_eval,y_eval
 
 def buildModel_lightGBM():    
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric='auc')
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=6,n_estimators=10000,metric='auc')
     return model
 
 def registerConvONNX_lightGBM():
