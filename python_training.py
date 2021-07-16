@@ -104,11 +104,11 @@ def getParameters():
     return np.array(params)
 
 def calcFeatures():
-
+    
     params = getParameters()
 
     features = []
-
+    
     MFT_X = params[0]
     MFT_Y = params[1]
     MFT_Phi = params[2]
@@ -121,7 +121,7 @@ def calcFeatures():
     MCH_Phi = params[22]
     MCH_Tanl = params[23]
     MCH_InvQPt = params[24]
-    MCH_QPt = 1./MCH_InvQPt
+    MCH_QPt = 1./MCH_InvQPt    
 
     MFT_Cov00 = params[5]
     MFT_Cov01 = params[6]
@@ -160,7 +160,7 @@ def calcFeatures():
     MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
 
     MatchingScore = params[42]
-
+    
     MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
 
     MFT_Pt = 1./np.abs(MFT_InvQPt)
@@ -168,19 +168,22 @@ def calcFeatures():
     MFT_Py = np.sin(MFT_Phi) * MFT_Pt
     MFT_Pz = MFT_Tanl * MFT_Pt
     MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
+    MFT_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MFT_Tanl)) / 2))
 
-    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1)
+    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1) 
 
     MCH_Pt = 1./np.abs(MCH_InvQPt)
     MCH_Px = np.cos(MCH_Phi) * MCH_Pt
     MCH_Py = np.sin(MCH_Phi) * MCH_Pt
     MCH_Pz = MCH_Tanl * MCH_Pt
     MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
+    MCH_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MCH_Tanl)) / 2))
 
     Delta_X = MCH_X - MFT_X
     Delta_Y = MCH_Y - MFT_Y
     Delta_XY = np.sqrt((MCH_X - MFT_X)**2 + (MCH_Y - MFT_Y)**2)
     Delta_Phi = MCH_Phi - MFT_Phi
+    Delta_Eta = MCH_Eta - MFT_Eta
     Delta_Tanl = MCH_Tanl - MFT_Tanl
     Delta_InvQPt = MCH_InvQPt - MFT_InvQPt
     Delta_Pt = MCH_Pt - MFT_Pt
@@ -201,32 +204,34 @@ def calcFeatures():
     Ratio_Pz = MCH_Pz / MFT_Pz
     Ratio_P = MCH_P / MFT_P
     Ratio_Ch = MCH_Ch / MFT_Ch
-
-    features.append(MFT_X)
-    features.append(MFT_Y)
+    
+    #features.append(MFT_X)
+    #features.append(MFT_Y)
     features.append(MFT_Phi)
-    features.append(MFT_Tanl)
+    #features.append(MFT_Tanl)
+    features.append(MFT_Eta)
     features.append(MFT_Pt)
-    features.append(MFT_Px)
-    features.append(MFT_Py)
-    features.append(MFT_Pz)
+    #features.append(MFT_Px)
+    #features.append(MFT_Py)
+    #features.append(MFT_Pz)
     features.append(MFT_P)
     features.append(MFT_Ch)
 
-    features.append(MCH_X)
-    features.append(MCH_Y)
+    #features.append(MCH_X)
+    #features.append(MCH_Y)
     features.append(MCH_Phi)
-    features.append(MCH_Tanl)
+    #features.append(MCH_Tanl)
+    features.append(MCH_Eta)
     features.append(MCH_Pt)
-    features.append(MCH_Px)
-    features.append(MCH_Py)
-    features.append(MCH_Pz)
+    #features.append(MCH_Px)
+    #features.append(MCH_Py)
+    #features.append(MCH_Pz)
     features.append(MCH_P)
     features.append(MCH_Ch)
 
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)
+    features.append(MFT_TrackReducedChi2)    
     features.append(MatchingScore)
     '''
     features.append(MFT_Cov00)
@@ -265,7 +270,8 @@ def calcFeatures():
     features.append(Delta_Y)
     features.append(Delta_XY)
     features.append(Delta_Phi)
-    features.append(Delta_Tanl)
+    #features.append(Delta_Tanl)
+    features.append(Delta_Eta)
     features.append(Delta_Pt)
     features.append(Delta_Px)
     features.append(Delta_Py)
@@ -309,9 +315,9 @@ def getData(X,y):
     return X_train,y_train,X_test,y_test,X_eval,y_eval
 
 def buildModel_lightGBM():
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric="custom")
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.05,max_depth=20,n_estimators=1000,metric="custom")
     return model
-
+    
 def registerConvONNX_lightGBM():
     update_registered_converter(
         LGBMClassifier, 'LightGbmLGBMClassifier',
@@ -568,8 +574,8 @@ def main():
         ax.set_xlim([0.0, 1.2])
         ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
         ax.legend(loc="upper right")
-        fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveLGBM.png', format="png")
-        plt.savefig("/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRAUCLGBM.png", format="png")
+        fig.savefig('./MLResultPRCurveLGBM.png', format="png")
+        plt.savefig("./MLResultPRAUCLGBM.png", format="png")
 
     elif model_type == 'XGBoost':
         model = buildModel_XGBoost()
@@ -592,7 +598,9 @@ def main():
         pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_XGBoost(model,'XGBoost.onnx',X_test,y_test)
         precision_xgb, recall_xgb, thresholds_xgb = precision_recall_curve(y_test, pred_model_proba)
         area_xgb = auc(recall_xgb, precision_xgb)
+        
         print ("AUPR score: %0.2f" % area_xgb)
+        
         results = model.evals_result()
         epochs = len(results['validation_0']['aucpr'])
         x_axis = range(0, epochs)
@@ -602,7 +610,7 @@ def main():
         ax.legend()
         plt.ylabel('PR-AUC')
         plt.title('XGBoost PR-AUC')
-        plt.savefig("/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRAUCXGBoost.png", format="png")
+        plt.savefig("./MLResultPRAUCXGBoost.png", format="png")
 
         ax.plot(recall_xgb, precision_xgb, label='XGBoost(AUC = %0.2f)' % area_xgb)
         ax.set_xlabel('Recall(=Efficiency)')
