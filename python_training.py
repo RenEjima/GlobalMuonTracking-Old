@@ -315,18 +315,19 @@ def getObjVar():
 def getData(X,y):
     X_train, X_test, y_train, y_test = train_test_split(X, y,test_size=0.2,random_state=0,stratify=y)
     X_train, X_eval, y_train, y_eval = train_test_split(X_train, y_train,test_size=0.2,random_state=0,stratify=y_train)
-    return X_train,y_train,X_test,y_test,X_eval,y_eval
-    
-def getSampledData(X,y):
-    print('down sampling now ...')
-    sampler = RandomUnderSampler(sampling_strategy={0: y.sum(), 1: y.sum()}, random_state=42)
-    X_sampled, y_sampled = sampler.fit_resample(X, y)
     del X
     del y
     gc.collect()
-    X_train, X_test, y_train, y_test = train_test_split(X_sampled, y_sampled,test_size=0.2,random_state=0,stratify=y_sampled)
-    X_train, X_eval, y_train, y_eval = train_test_split(X_train, y_train,test_size=0.2,random_state=0,stratify=y_train)
     return X_train,y_train,X_test,y_test,X_eval,y_eval
+    
+def getSampledTrainData(X_train,y_train):
+    print('down sampling now ...')
+    sampler = RandomUnderSampler(sampling_strategy={0: y_train.sum(), 1: y_train.sum()}, random_state=42)
+    X_train_sampled, y_train_sampled = sampler.fit_resample(X_train, y_train)
+    del X_train
+    del y_train
+    gc.collect()
+    return X_train_sampled,y_train_sampled
 
 def buildModel_lightGBM():
     model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric="custom")
@@ -543,8 +544,8 @@ X = getExpVar()
 y = getObjVar()
 
 rowExpVarDim,colExpVarDim = getInputDim(X)
-#X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
-X_train,y_train,X_test,y_test,X_eval,y_eval = getSampledData(X,y) #get balanced data
+X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
+X_train,y_train = getSampledTrainData(X_train,y_train) #get balanced training data
 
 model_type=getTrainingModel()
 
