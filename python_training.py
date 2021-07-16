@@ -104,11 +104,11 @@ def getParameters():
     return np.array(params)
 
 def calcFeatures():
-    
+
     params = getParameters()
 
     features = []
-    
+
     MFT_X = params[0]
     MFT_Y = params[1]
     MFT_Phi = params[2]
@@ -121,7 +121,7 @@ def calcFeatures():
     MCH_Phi = params[22]
     MCH_Tanl = params[23]
     MCH_InvQPt = params[24]
-    MCH_QPt = 1./MCH_InvQPt    
+    MCH_QPt = 1./MCH_InvQPt
 
     MFT_Cov00 = params[5]
     MFT_Cov01 = params[6]
@@ -160,7 +160,7 @@ def calcFeatures():
     MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
 
     MatchingScore = params[42]
-    
+
     MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
 
     MFT_Pt = 1./np.abs(MFT_InvQPt)
@@ -170,7 +170,7 @@ def calcFeatures():
     MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
     MFT_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MFT_Tanl)) / 2))
 
-    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1) 
+    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1)
 
     MCH_Pt = 1./np.abs(MCH_InvQPt)
     MCH_Px = np.cos(MCH_Phi) * MCH_Pt
@@ -204,7 +204,7 @@ def calcFeatures():
     Ratio_Pz = MCH_Pz / MFT_Pz
     Ratio_P = MCH_P / MFT_P
     Ratio_Ch = MCH_Ch / MFT_Ch
-    
+
     #features.append(MFT_X)
     #features.append(MFT_Y)
     features.append(MFT_Phi)
@@ -231,7 +231,7 @@ def calcFeatures():
 
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)    
+    features.append(MFT_TrackReducedChi2)
     features.append(MatchingScore)
     '''
     features.append(MFT_Cov00)
@@ -315,9 +315,9 @@ def getData(X,y):
     return X_train,y_train,X_test,y_test,X_eval,y_eval
 
 def buildModel_lightGBM():
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.05,max_depth=20,n_estimators=1000,metric="custom")
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric="custom")
     return model
-    
+
 def registerConvONNX_lightGBM():
     update_registered_converter(
         LGBMClassifier, 'LightGbmLGBMClassifier',
@@ -550,9 +550,9 @@ def main():
             eval_metric=prauc,
             eval_set=[
                 (X_train, y_train),
-                (X_test, y_test),
+                (X_eval, y_eval),
             ],
-            eval_names=['train', 'test'],
+            eval_names=['train', 'validation'],
             early_stopping_rounds=1000,
         )
 
@@ -586,7 +586,7 @@ def main():
             eval_metric='aucpr',
             eval_set=[
                 (X_train, y_train),
-                (X_test, y_test),
+                (X_eval, y_eval),
             ],
             early_stopping_rounds=1000,
         )
@@ -598,9 +598,9 @@ def main():
         pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_XGBoost(model,'XGBoost.onnx',X_test,y_test)
         precision_xgb, recall_xgb, thresholds_xgb = precision_recall_curve(y_test, pred_model_proba)
         area_xgb = auc(recall_xgb, precision_xgb)
-        
+
         print ("AUPR score: %0.2f" % area_xgb)
-        
+
         results = model.evals_result()
         epochs = len(results['validation_0']['aucpr'])
         x_axis = range(0, epochs)
@@ -619,7 +619,7 @@ def main():
         ax.set_xlim([0.0, 1.2])
         ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
         ax.legend(loc="upper right")
-        fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveXBoost.png', format="png")
+        fig.savefig('MLResultPRCurveXBoost.png', format="png")
 
     elif model_type == 'tfNN':
 
