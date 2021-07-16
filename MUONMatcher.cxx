@@ -1951,6 +1951,71 @@ double MUONMatcher::matchHiroshima(const GlobalMuonTrack& mchTrack,
 };
 
 //_________________________________________________________________________________________________
+double MUONMatcher::matchHiroshimaReverse(const GlobalMuonTrack& mchTrack,
+                                   const MFTTrack& mftTrack)
+{
+
+  //Hiroshima's Matching function
+
+  //Matching constants
+  Double_t LAbs = 415.;    //Absorber Length[cm]
+  Double_t mumass = 0.106; //mass of muon [GeV/c^2]
+  Double_t l;              //the length that extrapolated MCHtrack passes through absorber
+
+  if (-505.0<=mMatchingPlaneZ&&mMatchingPlaneZ<-90.0) {
+    l = 90.0 - mMatchingPlaneZ;
+  } else if (mMatchingPlaneZ<-505.0){
+    l=LAbs;
+  }
+
+  //defference between MFTtrack and MCHtrack
+
+  auto dx = -mftTrack.getX() + mchTrack.getX();
+  auto dy = -mftTrack.getY() + mchTrack.getY();
+  auto dthetax = -TMath::ATan(mftTrack.getPx() / TMath::Abs(mftTrack.getPz())) + TMath::ATan(mchTrack.getPx() / TMath::Abs(mchTrack.getPz()));
+  auto dthetay = -TMath::ATan(mftTrack.getPy() / TMath::Abs(mftTrack.getPz())) + TMath::ATan(mchTrack.getPy() / TMath::Abs(mchTrack.getPz()));
+
+  //Multiple Scattering(=MS)
+
+  auto pMFT = mchTrack.getP(); //Use MCHtrack's momentum as MFTtrack's momentum
+  auto lorentzbeta = pMFT / TMath::Sqrt(mumass * mumass + pMFT * pMFT);
+  auto zMS = copysign(1.0, mftTrack.getCharge());
+  auto thetaMS = 13.6 / (1000.0 * pMFT * lorentzbeta * 1.0) * zMS * TMath::Sqrt(60.0 * l / LAbs) * (1.0 + 0.038 * TMath::Log(60.0 * l / LAbs));
+  auto xMS = thetaMS * l / TMath::Sqrt(3.0);
+
+  //normalize by theoritical Multiple Coulomb Scattering width to be momentum-independent
+  //make the dx and dtheta dimensionless
+
+  auto dxnorm = dx / xMS;
+  auto dynorm = dy / xMS;
+  auto dthetaxnorm = dthetax / thetaMS;
+  auto dthetaynorm = dthetay / thetaMS;
+
+  //rotate distribution
+
+  auto dxrot = dxnorm * TMath::Cos(TMath::Pi() / 4.0) - dthetaxnorm * TMath::Sin(TMath::Pi() / 4.0);
+  auto dthetaxrot = dxnorm * TMath::Sin(TMath::Pi() / 4.0) + dthetaxnorm * TMath::Cos(TMath::Pi() / 4.0);
+  auto dyrot = dynorm * TMath::Cos(TMath::Pi() / 4.0) - dthetaynorm * TMath::Sin(TMath::Pi() / 4.0);
+  auto dthetayrot = dynorm * TMath::Sin(TMath::Pi() / 4.0) + dthetaynorm * TMath::Cos(TMath::Pi() / 4.0);
+
+  //convert ellipse to circle
+
+  auto k = 2.4; //need to optimize!!
+  auto dxcircle = dxrot;
+  auto dycircle = dyrot;
+  auto dthetaxcircle = dthetaxrot / k;
+  auto dthetaycircle = dthetayrot / k;
+
+  //score
+
+  auto scoreX = TMath::Sqrt(dxcircle * dxcircle + dthetaxcircle * dthetaxcircle);
+  auto scoreY = TMath::Sqrt(dycircle * dycircle + dthetaycircle * dthetaycircle);
+  auto score = TMath::Sqrt(scoreX * scoreX + scoreY * scoreY);
+
+  return score;
+};
+
+//_________________________________________________________________________________________________
 double MUONMatcher::matchTrainedML(const MCHTrackConv& mchTrack,
                                    const MFTTrack& mftTrack)
 {
@@ -2165,25 +2230,25 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
 //_________________________________________________________________________________________________
 void MUONMatcher::runONNXRuntime()
 {
- 
+
   std::cout<<"ONNXRUntime is running....."<<endl;
 
   std::string model_file = "";
-    
+
   model_file = gSystem->Getenv("ML_MODULE");
-  
+
   std::cout << " Using " << model_file << std::endl;
-  
+
   // onnxruntime setup
   Ort::Env env(ORT_LOGGING_LEVEL_WARNING, "example-model-explorer");
   Ort::SessionOptions session_options;
   Ort::Experimental::Session session = Ort::Experimental::Session(env, model_file, session_options);  // access experimental components via the Experimental namespace
-  
+
   std::vector<std::string> input_names;
   std::vector<std::vector<int64_t>> input_shapes;
   std::vector<std::string> output_names;
   std::vector<std::vector<int64_t>> output_shapes;
-  
+
   input_names = session.GetInputNames();
   input_shapes = session.GetInputShapes();
   output_names = session.GetOutputNames();
@@ -2206,13 +2271,13 @@ void MUONMatcher::runONNXRuntime()
   */
   // Assume model has 1 input node and 1 output node.
   assert(input_names.size() == 1 && output_names.size() == 1);
-  
+
   // Runs matching over all tracks on a single event
   std::cout << "Number of MCH Tracks = " << mMatchingHelper.nMCHTracks << std::endl;
   std::cout << "Annotation: " << mMatchingHelper.Annotation() << std::endl;
   std::cout << "Running runEventMatching for " << mNEvents << " events"
             << std::endl;
-  
+
   uint32_t GTrackID = 0;
   auto nMCHTracks = 0;
   auto nGlobalMuonTracksExt = 0;
@@ -2221,7 +2286,7 @@ void MUONMatcher::runONNXRuntime()
     if (mVerbose)
       std::cout << "Matching event # " << event << ": " << mSortedGlobalMuonTracks[event].size() << " MCH Tracks" << std::endl;
     GTrackID = 0;
-    
+
     if (!mMatchSaveAll) {
       for (auto& gTrack : mSortedGlobalMuonTracks[event]) {
         auto MCHlabel = mSortedMCHTrackLabels[event].getLabels(GTrackID);
@@ -2233,41 +2298,41 @@ void MUONMatcher::runONNXRuntime()
             if (matchingCut(gTrack, mftTrack)) {
 
 	      gTrack.countCandidate();
-              
+
 	      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
 		//if (MFTlabel[0].getTrackID() == MCHlabel[0].getTrackID())
                 gTrack.setCloseMatch();
 	      }
-	      
+
 	      //gTrack.setMatchingChi2(gTrack.getMatchingChi2);
 
 	      std::vector<float> input_tensor_values = getTrainingVariables(gTrack,mftTrack);
-	      std::vector<Ort::Value> input_tensors;	      
+	      std::vector<Ort::Value> input_tensors;
 	      input_tensors.push_back(Ort::Experimental::Value::CreateTensor<float>(input_tensor_values.data(), input_tensor_values.size(), input_shape));
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
 	      assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
-	      	     
+
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
-	      
+
 	      Float_t prob = -999;
-	      
+
 	      if(model_file.find("lightGBM") != std::string::npos){
-		const float* output_value = output_tensors[1].GetTensorData<float>();		
+		const float* output_value = output_tensors[1].GetTensorData<float>();
 		if( output_value[0] <  output_value[1]){
 		  prob = output_value[1];
 		}
 	      }
 
-	      else if(model_file.find("tfNN") != std::string::npos){	
+	      else if(model_file.find("tfNN") != std::string::npos){
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
 	      }
-	      
-	      if (prob > gTrack.getMatchingChi2()) {                
+
+	      if (prob > gTrack.getMatchingChi2()) {
 		gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[event][mftTrackID]);
 		gTrack.setMatchingChi2(prob);
 	      }
-			
+
 
             }
             mftTrackID++;
@@ -2290,15 +2355,15 @@ void MUONMatcher::runONNXRuntime()
           //if (MFTlabel[0].getEventID() == event) {
 	  if (MFTlabel.getEventID() == event) {
             if (matchingCut(gTrackTmp, mftTrack)) {
-              
+
 	      //training_list_name = ["MCH_InvQPt","MFT_TrackReducedChi2","Delta_X","Delta_Y","Delta_XY","Delta_InvQPt"];
-	      
+
 	      GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
               gTrack.setParametersMCH(gTrack.getParameters());
               gTrack.setCovariancesMCH(gTrack.getCovariances());
               gTrack.countCandidate();
               //printf("BV: match MCH %d MFT %d \n", GTrackID, mftTrackID);
-              
+
 	      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
 		//if (MFTlabel[0].getTrackID() == MCHlabel[0].getTrackID()) {
                 gTrack.setCloseMatch();
@@ -2308,30 +2373,30 @@ void MUONMatcher::runONNXRuntime()
               gTrack.setParametersMFT(mftTrack.getParameters());
               gTrack.setCovariancesMFT(mftTrack.getCovariances());
               gTrack.setMCHTrackID(GTrackID);
-	      
+
 	      std::vector<float> input_tensor_values = getTrainingVariables(gTrack,mftTrack);
 
-	      std::vector<Ort::Value> input_tensors;	      
+	      std::vector<Ort::Value> input_tensors;
 	      input_tensors.push_back(Ort::Experimental::Value::CreateTensor<float>(input_tensor_values.data(), input_tensor_values.size(), input_shape));
 
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
-	      
+
 	      assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
-	      	     
+
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
-	      
+
 	      Float_t prob = -999;
-	      
+
 	      if(model_file.find("lightGBM") != std::string::npos){
-		const float* output_value = output_tensors[1].GetTensorData<float>();		
+		const float* output_value = output_tensors[1].GetTensorData<float>();
 		prob = output_value[1];
 	      }
 
-	      else if(model_file.find("tfNN") != std::string::npos){	
+	      else if(model_file.find("tfNN") != std::string::npos){
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
 	      }
-	      
+
 	      gTrack.setMatchingChi2(prob);
 
 	      mSortedGlobalMuonTracksExt[event].push_back(gTrack);
@@ -2404,10 +2469,10 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MCH_Cov24  = mchTrack.getCovariances()(2, 4);
   Float_t MCH_Cov34  = mchTrack.getCovariances()(3, 4);
   Float_t MCH_Cov44  = mchTrack.getCovariances()(4, 4);
-	      
+
   Float_t MFT_TrackChi2   = mftTrack.getTrackChi2();
   Float_t MFT_NClust      = mftTrack.getNumberOfPoints();
-	      
+
   Float_t Delta_X      = MCH_X      - MFT_X;
   Float_t Delta_Y      = MCH_Y      - MFT_Y;
   Float_t Delta_XY     = sqrt(pow(MCH_X-MFT_X,2) + pow(MCH_Y-MFT_Y,2));
@@ -2452,9 +2517,9 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t Ratio_Cov34  = MCH_Cov34 - MFT_Cov34;
   Float_t Ratio_Cov44  = MCH_Cov44 - MFT_Cov44;
 
-  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;	      
+  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;
   Float_t MatchingScore = matchingEval(mchTrack, mftTrack);
-  
+
   /*
   features.append(MFT_X)
     features.append(MFT_Y)

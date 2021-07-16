@@ -23,9 +23,14 @@ from skl2onnx import convert_sklearn, update_registered_converter
 from skl2onnx.common.shape_calculator import calculate_linear_classifier_output_shapes  # noqa
 
 from onnxmltools.convert.lightgbm.operator_converters.LightGbm import convert_lightgbm  # noqa
+from onnxmltools.convert.xgboost.operator_converters.XGBoost import convert_xgboost  # noqa
 from skl2onnx.common.data_types import FloatTensorType
 
+import lightgbm as lgb
+import xgboost as xgb
+
 from lightgbm import LGBMClassifier
+from xgboost import XGBClassifier
 
 import tensorflow as tf
 from tensorflow import keras
@@ -39,13 +44,16 @@ from tensorflow.keras.layers.experimental import preprocessing
 import keras2onnx
 import tf2onnx
 
+from sklearn.metrics import auc
+from sklearn.metrics import precision_recall_curve
+
 def getTrainingModel():
     return os.environ['ML_MODULE']
 
 def getParameters():
 
     params = []
-            
+
     params.append(matchTree.array("MFT_X"))
     params.append(matchTree.array("MFT_Y"))
     params.append(matchTree.array("MFT_Phi"))
@@ -90,17 +98,17 @@ def getParameters():
 
     params.append(matchTree.array("MFT_TrackChi2"))
     params.append(matchTree.array("MFT_NClust"))
-    
-    params.append(matchTree.array("MatchingScore"))    
+
+    params.append(matchTree.array("MatchingScore"))
 
     return np.array(params)
 
 def calcFeatures():
-    
+
     params = getParameters()
 
     features = []
-    
+
     MFT_X = params[0]
     MFT_Y = params[1]
     MFT_Phi = params[2]
@@ -113,7 +121,7 @@ def calcFeatures():
     MCH_Phi = params[22]
     MCH_Tanl = params[23]
     MCH_InvQPt = params[24]
-    MCH_QPt = 1./MCH_InvQPt    
+    MCH_QPt = 1./MCH_InvQPt
 
     MFT_Cov00 = params[5]
     MFT_Cov01 = params[6]
@@ -152,7 +160,7 @@ def calcFeatures():
     MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
 
     MatchingScore = params[42]
-    
+
     MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
 
     MFT_Pt = 1./np.abs(MFT_InvQPt)
@@ -161,14 +169,14 @@ def calcFeatures():
     MFT_Pz = MFT_Tanl * MFT_Pt
     MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
 
-    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1) 
+    MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1)
 
     MCH_Pt = 1./np.abs(MCH_InvQPt)
     MCH_Px = np.cos(MCH_Phi) * MCH_Pt
     MCH_Py = np.sin(MCH_Phi) * MCH_Pt
     MCH_Pz = MCH_Tanl * MCH_Pt
     MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
-    
+
     Delta_X = MCH_X - MFT_X
     Delta_Y = MCH_Y - MFT_Y
     Delta_XY = np.sqrt((MCH_X - MFT_X)**2 + (MCH_Y - MFT_Y)**2)
@@ -218,7 +226,7 @@ def calcFeatures():
 
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
-    features.append(MFT_TrackReducedChi2)    
+    features.append(MFT_TrackReducedChi2)
     features.append(MatchingScore)
     '''
     features.append(MFT_Cov00)
@@ -289,7 +297,7 @@ def getExpVar():
 
 def getInputDim(X):
     rowExpVarDim,colExpVarDim = X.shape
-    return rowExpVarDim,colExpVarDim 
+    return rowExpVarDim,colExpVarDim
 
 def getObjVar():
     return matchTree.array("Truth")
@@ -300,8 +308,8 @@ def getData(X,y):
 
     return X_train,y_train,X_test,y_test,X_eval,y_eval
 
-def buildModel_lightGBM():    
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=6,n_estimators=10000,metric='auc')
+def buildModel_lightGBM():
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric="custom")
     return model
 
 def registerConvONNX_lightGBM():
@@ -310,15 +318,15 @@ def registerConvONNX_lightGBM():
         calculate_linear_classifier_output_shapes, convert_lightgbm,
         options={'nocl': [True, False]}
     )
-    
+
 def buildONNXModel_lightGBM(model):
     registerConvONNX_lightGBM()
     return convert_sklearn(model, 'lightgbm',[('input', FloatTensorType([None, colExpVarDim]))],target_opset=12)
 
-def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):        
+def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
 
     session_model = rt.InferenceSession(onnx_model_name)
-    
+
     input_name = session_model.get_inputs()[0].name
     output_name1 = session_model.get_outputs()[0].name #labels
     output_name2= session_model.get_outputs()[1].name #probabilitoes
@@ -327,7 +335,7 @@ def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
     pred_onnx_model_proba = session_model.run([output_name2], {"input": X_test.astype(np.float32)})
     pred_model = model.predict(X_test)
     pred_model_proba = model.predict_proba(X_test)
-    
+
     pred_onnx_model = np.array(pred_onnx_model[0])
     pred_onnx_model_proba = np.array(pred_onnx_model_proba[0])
 
@@ -336,15 +344,62 @@ def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
 
     print("accuracy:  ",accuracy_score(y_test,pred_onnx_model))
     print("precision: ",precision_score(y_test,pred_onnx_model))
-    
+
     print(type(pred_model_proba))
     print('Pure-LightGBM predicted proba')
     print(pred_model_proba)
 
     print('ONNX-LightGBM predicted proba')
     print(pred_onnx_model_proba)
-    
+
     return pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba
+
+def buildModel_XGBoost():
+    model = XGBClassifier(n_estimators=10000,use_label_encoder=False)
+    return model
+
+def registerConvONNX_XGBoost():
+    update_registered_converter(
+        XGBClassifier, 'XGBoostXGBClassifier',
+        calculate_linear_classifier_output_shapes, convert_xgboost,
+        options={'nocl': [True, False]}
+    )
+
+def buildONNXModel_XGBoost(model):
+    registerConvONNX_XGBoost()
+    return convert_sklearn(model, 'xgboost',[('input', FloatTensorType([None, colExpVarDim]))],target_opset=12)
+
+def getPredict_XGBoost(model,onnx_model_name,X_test,y_test):
+
+    session_model = rt.InferenceSession(onnx_model_name)
+
+    input_name = session_model.get_inputs()[0].name
+    output_name1 = session_model.get_outputs()[0].name #labels
+    output_name2= session_model.get_outputs()[1].name #probabilitoes
+
+    pred_onnx_model = session_model.run([output_name1], {"input": X_test.astype(np.float32)})
+    pred_onnx_model_proba = session_model.run([output_name2], {"input": X_test.astype(np.float32)})
+    pred_model = model.predict(X_test)
+    pred_model_proba = model.predict_proba(X_test)
+
+    pred_onnx_model = np.array(pred_onnx_model[0])
+    pred_onnx_model_proba = np.array(pred_onnx_model_proba[0])
+
+    pred_onnx_model_proba = pred_onnx_model_proba[:,1]
+    pred_model_proba = pred_model_proba[:,1]
+
+    print("accuracy:  ",accuracy_score(y_test,pred_onnx_model))
+    print("precision: ",precision_score(y_test,pred_onnx_model))
+
+    print(type(pred_model_proba))
+    print('Pure-XGBoost predicted proba')
+    print(pred_model_proba)
+
+    print('ONNX-XGBoost predicted proba')
+    print(pred_onnx_model_proba)
+
+    return pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba
+
 
 def buildModel_tensorflowNN(normalize, colExpVarDim):
 
@@ -362,7 +417,7 @@ def buildModel_tensorflowNN(normalize, colExpVarDim):
         layers.Dense(colExpVarDim, activation='sigmoid',use_bias=False),
         layers.Dense(1, activation='sigmoid')
     ])
-    
+
     model.compile(loss='binary_crossentropy', optimizer=tf.optimizers.Adam(learning_rate=0.0005), metrics=['accuracy'])
 
     model.summary
@@ -387,7 +442,7 @@ def showHistory_tensorFlowNN(history):
     plt.xlabel('Epoch')
     plt.legend(['Train', 'Test'], loc='upper left')
     plt.show()
-    
+
 def buildONNXModel_tensorflowNN(model):
     model_onnx, external_tensor_storage = tf2onnx.convert.from_keras(model,input_signature=None, opset=None, custom_ops=None,
                                                                       custom_op_handlers=None, custom_rewriter=None,
@@ -395,16 +450,16 @@ def buildONNXModel_tensorflowNN(model):
                                                                       target=None, large_model=False, output_path=None)
     return  model_onnx
 
-def getPredict_tensorflowNN(model,onnx_model_name,X_test,y_test):        
-    
+def getPredict_tensorflowNN(model,onnx_model_name,X_test,y_test):
+
     pred_model_proba = model.predict(X_test)
     pred_model = np.where(pred_model_proba>0.5, True, False)
 
     model_onnx = rt.InferenceSession(onnx_model_name)
-    
+
     pred_onnx_model_proba = model_onnx.run([model_onnx.get_outputs()[0].name], { model_onnx.get_inputs()[0].name: X_test.astype(np.float32)})
     pred_onnx_model_proba = pred_onnx_model_proba[0]
-        
+
     pred_onnx_model = np.where(pred_onnx_model_proba>0.5, True, False)
 
     return pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba
@@ -448,7 +503,7 @@ def showONNXInfo(model_onnx):
     ax.get_yaxis().set_visible(False)
     plt.show()
 
-    
+
 ########################################################################
 ########################################################################
 ####                                                                ####
@@ -472,21 +527,94 @@ X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
 
 model_type=getTrainingModel()
 
-def main():    
+def prauc(data,preds):
+    precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(data, preds)
+    area_lgb = auc(recall_lgb, precision_lgb)
+    metric = area_lgb
+    return 'PR-AUC', metric, True
+
+def main():
 
     if model_type == 'lightGBM':
         model = buildModel_lightGBM()
 
-        training_history = model.fit(X_train, y_train)
+        #training_history = model.fit(X_train, y_train)
+
+        training_history = model.fit(X_train, y_train,
+            eval_metric=prauc,
+            eval_set=[
+                (X_train, y_train),
+                (X_test, y_test),
+            ],
+            eval_names=['train', 'test'],
+            early_stopping_rounds=1000,
+        )
 
         model_onnx = buildONNXModel_lightGBM(model)
 
         saveONNXModel(model_onnx,'lightGBM.onnx')
-    
+
         pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_lightGBM(model,'lightGBM.onnx',X_test,y_test)
-        
+        precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(y_test, pred_model_proba)
+        area_lgb = auc(recall_lgb, precision_lgb)
+        print ("AUPR score: %0.2f" % area_lgb)
+        fig = plt.figure(figsize=(6,6))
+        ax = fig.add_subplot(1, 1, 1)
+        lgb.plot_metric(model)
+        ax.plot(recall_lgb, precision_lgb, label='LightGBM(AUC = %0.2f)' % area_lgb)
+        ax.set_xlabel('Recall(=Efficiency)')
+        ax.set_ylabel('Precision(=Purity)')
+        ax.set_ylim([0.0, 2.0])
+        ax.set_xlim([0.0, 1.2])
+        ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
+        ax.legend(loc="upper right")
+        fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveLGBM.png', format="png")
+        plt.savefig("/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRAUCLGBM.png", format="png")
+
+    elif model_type == 'XGBoost':
+        model = buildModel_XGBoost()
+
+        #training_history = model.fit(X_train, y_train)
+
+        training_history = model.fit(X_train, y_train,
+            eval_metric='aucpr',
+            eval_set=[
+                (X_train, y_train),
+                (X_test, y_test),
+            ],
+            early_stopping_rounds=1000,
+        )
+
+        model_onnx = buildONNXModel_XGBoost(model)
+
+        saveONNXModel(model_onnx,'XGBoost.onnx')
+
+        pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_XGBoost(model,'XGBoost.onnx',X_test,y_test)
+        precision_xgb, recall_xgb, thresholds_xgb = precision_recall_curve(y_test, pred_model_proba)
+        area_xgb = auc(recall_xgb, precision_xgb)
+        print ("AUPR score: %0.2f" % area_xgb)
+        results = model.evals_result()
+        epochs = len(results['validation_0']['aucpr'])
+        x_axis = range(0, epochs)
+        fig, ax = plt.subplots()
+        ax.plot(x_axis, results['validation_0']['aucpr'], label='Train')
+        ax.plot(x_axis, results['validation_1']['aucpr'], label='Test')
+        ax.legend()
+        plt.ylabel('PR-AUC')
+        plt.title('XGBoost PR-AUC')
+        plt.savefig("/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRAUCXGBoost.png", format="png")
+
+        ax.plot(recall_xgb, precision_xgb, label='XGBoost(AUC = %0.2f)' % area_xgb)
+        ax.set_xlabel('Recall(=Efficiency)')
+        ax.set_ylabel('Precision(=Purity)')
+        ax.set_ylim([0.0, 2.0])
+        ax.set_xlim([0.0, 1.2])
+        ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
+        ax.legend(loc="upper right")
+        fig.savefig('/home/ejima/disk1/GlobalMuonTracking-ONNXRuntime/hijingTrain2/MLResultPRCurveXBoost.png', format="png")
+
     elif model_type == 'tfNN':
-        
+
         print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
 
         normalize = preprocessing.Normalization()
@@ -499,13 +627,13 @@ def main():
                                      verbose=1,
                                      validation_data=(X_eval, y_eval))
 
-                
+
         model_onnx = buildONNXModel_tensorflowNN(model)
-        
+
         saveONNXModel(model_onnx,'tfNN.onnx')
 
         pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_tensorflowNN(model,'tfNN.onnx',X_test,y_test)
-        
+
         print("accuracy:  ",accuracy_score(y_test,pred_onnx_model))
         print("precision: ",precision_score(y_test,pred_onnx_model))
 
