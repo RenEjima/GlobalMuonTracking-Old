@@ -1551,61 +1551,169 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
 {
 
   const auto& mftTrack = mMFTTracks[gTrack.getBestMFTTrackMatchID()];
-  auto ncls = mftTrack.getNumberOfPoints();
-  auto offset = mftTrack.getExternalClusterIndexOffset();
-  auto invQPt0 = gTrack.getInvQPt();
-  auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
+    
+  
+  /*
+  if(mMatchingPlaneZ<-90.0){
+    MFTTrack new_mftTrack = MFTTrack();
+    float slopeX = gTrack.getPx()/gTrack.getPz();
+    float slopeY = gTrack.getPy()/gTrack.getPz();
+    float bendP  = sqrt(gTrack.getPy()*gTrack.getPy() + gTrack.getPz()*gTrack.getPz());
 
-  // initialize the starting track parameters and cluster
-  auto nPoints = mftTrack.getNumberOfPoints();
-  auto k = TMath::Abs(o2::constants::math::B2C * mField_z);
-  auto Hz = std::copysign(1, mField_z);
-  if (mVerbose) {
+    MCHTrack* mchTrack = new MCHTrack();
+    mchTrack->setZ(gTrack.getZ());
+    mchTrack->setNonBendingCoor(gTrack.getX());
+    mchTrack->setNonBendingSlope(slopeX);
+    mchTrack->setBendingCoor(gTrack.getY());
+    mchTrack->setBendingSlope(slopeY);
+    mchTrack->setInverseBendingMomentum(1./bendP);
+    mchTrack->setCharge(gTrack.getCharge());
 
-    std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
-    std::cout << "  N Clusters = " << ncls << std::endl;
-    std::cout << "  Best MFT Track Match ID " << gTrack.getBestMFTTrackMatchID()
-              << std::endl;
-    std::cout << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY()
-              << " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl()
-              << "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz()
-              << " qpt = " << 1.0 / gTrack.getInvQPt() << std::endl;
+    mMCHTrackExtrap.extrapToMatchingPlane(mchTrack, 0);
+
+    // Parameter conversion
+    double alpha1, alpha3, alpha4, x2, x3, x4;
+
+    alpha1 = mchTrack->getNonBendingSlope();
+    alpha3 = mchTrack->getBendingSlope();
+    alpha4 = mchTrack->getInverseBendingMomentum();
+
+    x2 = TMath::ATan2(-alpha3, -alpha1);
+    x3 = -1. / TMath::Sqrt(alpha3 * alpha3 + alpha1 * alpha1);
+    x4 = alpha4 * -x3 * TMath::Sqrt(1 + alpha3 * alpha3);
+    // Set output
+    gTrack.setX(mchTrack->getNonBendingCoor());
+    gTrack.setY(mchTrack->getBendingCoor());
+    gTrack.setZ(mchTrack->getZ());
+    gTrack.setPhi(x2);
+    gTrack.setTanl(x3);
+    gTrack.setInvQPt(x4);
+    gTrack.setCharge(mchTrack->getCharge());
+  
+    
+    new_mftTrack.setParameters(mftTrack.getOutParam().getParameters());
+    new_mftTrack.setCovariances(mftTrack.getOutParam().getCovariances());
+    new_mftTrack.setZ(mftTrack.getOutParam().getZ());
+    new_mftTrack.propagateToZhelix(0, mField_z);
+    
+    new_mftTrack.setNumberOfPoints(mftTrack.getNumberOfPoints());
+    new_mftTrack.setExternalClusterIndexOffset(mftTrack.getExternalClusterIndexOffset());
+
+    auto ncls = new_mftTrack.getNumberOfPoints();
+    auto offset = new_mftTrack.getExternalClusterIndexOffset();
+    auto invQPt0 = gTrack.getInvQPt();
+    auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
+  
+    // initialize the starting track parameters and cluster
+    auto nPoints = new_mftTrack.getNumberOfPoints();
+    auto k = TMath::Abs(o2::constants::math::B2C * mField_z);
+    auto Hz = std::copysign(1, mField_z);
+    if (mVerbose) {
+
+      std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+      std::cout << "  N Clusters = " << ncls << std::endl;
+      std::cout << "  Best MFT Track Match ID " << gTrack.getBestMFTTrackMatchID()
+		<< std::endl;
+      std::cout << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY()
+		<< " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl()
+		<< "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz()
+		<< " qpt = " << 1.0 / gTrack.getInvQPt() << std::endl;
+    }
+
+    gTrack.setX(new_mftTrack.getX());
+    gTrack.setY(new_mftTrack.getY());
+    gTrack.setZ(new_mftTrack.getZ());
+    gTrack.setPhi(new_mftTrack.getPhi());
+    gTrack.setTanl(new_mftTrack.getTanl());
+    gTrack.setInvQPt(gTrack.getInvQPt());
+  
+    if (mVerbose) {
+
+      std::cout << "  MFTTrack: X = " << new_mftTrack.getX()
+		<< " Y = " << new_mftTrack.getY() << " Z = " << new_mftTrack.getZ()
+		<< " Tgl = " << new_mftTrack.getTanl()
+		<< "  Phi = " << new_mftTrack.getPhi() << " pz = " << new_mftTrack.getPz()
+		<< " qpt = " << 1.0 / new_mftTrack.getInvQPt() << std::endl;
+      std::cout << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
+    }
+
+    SMatrix55Sym lastParamCov;
+    Double_t tanlsigma = TMath::Max(std::abs(new_mftTrack.getTanl()), .5);
+    Double_t qptsigma = TMath::Max(std::abs(new_mftTrack.getInvQPt()), .5);
+    
+    lastParamCov(0, 0) = 10000. * new_mftTrack.getCovariances()(0, 0); // <X,X>
+    lastParamCov(1, 1) = 10000. * new_mftTrack.getCovariances()(1, 1); // <Y,X>
+    lastParamCov(2, 2) = 10000. * new_mftTrack.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
+    lastParamCov(3, 3) = 10000. * new_mftTrack.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // new_mftTrack.getCovariances()(3, 3);     // <TANL,X>
+    lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);            //100. * qptsigma * qptsigma;  // <INVQPT,X>
+
+    gTrack.setCovariances(lastParamCov);
+  
+    for (int icls = ncls - 1; icls > -1; --icls) {
+      auto clsEntry = mtrackExtClsIDs[offset + icls];
+      auto& thiscluster = mMFTClusters[clsEntry];
+      computeCluster(gTrack, thiscluster);
+    } 
   }
+  else{
+  */
+    auto ncls = mftTrack.getNumberOfPoints();
+    auto offset = mftTrack.getExternalClusterIndexOffset();
+    auto invQPt0 = gTrack.getInvQPt();
+    auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
+  
+    // initialize the starting track parameters and cluster
+    auto nPoints = mftTrack.getNumberOfPoints();
+    auto k = TMath::Abs(o2::constants::math::B2C * mField_z);
+    auto Hz = std::copysign(1, mField_z);
+    if (mVerbose) {
 
-  gTrack.setX(mftTrack.getX());
-  gTrack.setY(mftTrack.getY());
-  gTrack.setZ(mftTrack.getZ());
-  gTrack.setPhi(mftTrack.getPhi());
-  gTrack.setTanl(mftTrack.getTanl());
-  gTrack.setInvQPt(gTrack.getInvQPt());
+      std::cout << "\n ***************************** Start Fitting new track ***************************** \n";
+      std::cout << "  N Clusters = " << ncls << std::endl;
+      std::cout << "  Best MFT Track Match ID " << gTrack.getBestMFTTrackMatchID()
+		<< std::endl;
+      std::cout << "  MCHTrack: X = " << gTrack.getX() << " Y = " << gTrack.getY()
+		<< " Z = " << gTrack.getZ() << " Tgl = " << gTrack.getTanl()
+		<< "  Phi = " << gTrack.getPhi() << " pz = " << gTrack.getPz()
+		<< " qpt = " << 1.0 / gTrack.getInvQPt() << std::endl;
+    }
 
-  if (mVerbose) {
+    gTrack.setX(mftTrack.getX());
+    gTrack.setY(mftTrack.getY());
+    gTrack.setZ(mftTrack.getZ());
+    gTrack.setPhi(mftTrack.getPhi());
+    gTrack.setTanl(mftTrack.getTanl());
+    gTrack.setInvQPt(gTrack.getInvQPt());
+  
+    if (mVerbose) {
 
-    std::cout << "  MFTTrack: X = " << mftTrack.getX()
-              << " Y = " << mftTrack.getY() << " Z = " << mftTrack.getZ()
-              << " Tgl = " << mftTrack.getTanl()
-              << "  Phi = " << mftTrack.getPhi() << " pz = " << mftTrack.getPz()
-              << " qpt = " << 1.0 / mftTrack.getInvQPt() << std::endl;
-    std::cout << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
-  }
+      std::cout << "  MFTTrack: X = " << mftTrack.getX()
+		<< " Y = " << mftTrack.getY() << " Z = " << mftTrack.getZ()
+		<< " Tgl = " << mftTrack.getTanl()
+		<< "  Phi = " << mftTrack.getPhi() << " pz = " << mftTrack.getPz()
+		<< " qpt = " << 1.0 / mftTrack.getInvQPt() << std::endl;
+      std::cout << "  initTrack GlobalTrack: q/pt = " << gTrack.getInvQPt() << std::endl;
+    }
 
-  SMatrix55Sym lastParamCov;
-  Double_t tanlsigma = TMath::Max(std::abs(mftTrack.getTanl()), .5);
-  Double_t qptsigma = TMath::Max(std::abs(mftTrack.getInvQPt()), .5);
+    SMatrix55Sym lastParamCov;
+    Double_t tanlsigma = TMath::Max(std::abs(mftTrack.getTanl()), .5);
+    Double_t qptsigma = TMath::Max(std::abs(mftTrack.getInvQPt()), .5);
 
-  lastParamCov(0, 0) = 10000. * mftTrack.getCovariances()(0, 0); // <X,X>
-  lastParamCov(1, 1) = 10000. * mftTrack.getCovariances()(1, 1); // <Y,X>
-  lastParamCov(2, 2) = 10000. * mftTrack.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
-  lastParamCov(3, 3) = 10000. * mftTrack.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // mftTrack.getCovariances()(3, 3);     // <TANL,X>
-  lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);            //100. * qptsigma * qptsigma;  // <INVQPT,X>
+    lastParamCov(0, 0) = 10000. * mftTrack.getCovariances()(0, 0); // <X,X>
+    lastParamCov(1, 1) = 10000. * mftTrack.getCovariances()(1, 1); // <Y,X>
+    lastParamCov(2, 2) = 10000. * mftTrack.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
+    lastParamCov(3, 3) = 10000. * mftTrack.getCovariances()(3, 3); // 100. * tanlsigma * tanlsigma;  // mftTrack.getCovariances()(3, 3);     // <TANL,X>
+    lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);            //100. * qptsigma * qptsigma;  // <INVQPT,X>
 
-  gTrack.setCovariances(lastParamCov);
+    gTrack.setCovariances(lastParamCov);
+  
+    for (int icls = ncls - 1; icls > -1; --icls) {
+      auto clsEntry = mtrackExtClsIDs[offset + icls];
+      auto& thiscluster = mMFTClusters[clsEntry];
+      computeCluster(gTrack, thiscluster);
+    }
+    //  }
 
-  for (int icls = ncls - 1; icls > -1; --icls) {
-    auto clsEntry = mtrackExtClsIDs[offset + icls];
-    auto& thiscluster = mMFTClusters[clsEntry];
-    computeCluster(gTrack, thiscluster);
-  }
 }
 
 //_________________________________________________________________________________________________
@@ -2202,7 +2310,7 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
           Truth = (int)(MFTlabel.getTrackID() == MCHlabel[0].getTrackID());
           
 	  if ((mCorrectMatchIgnoreCut && Truth) || matchingCut(mchTrack, mftTrack)) {
-	    if( (Truth == 1) || ( Truth==0 && gRandom->Rndm() < 0.004 )){
+	    if( (Truth == 1) || ( Truth==0 && gRandom->Rndm() < 1 )){
 	      setMLFeatures(mchTrack, mftTrack);	    
 	      Truth ? nCorrectPairs++ : nFakesPairs++;
 	      pairID++;
@@ -2231,7 +2339,7 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
 //_________________________________________________________________________________________________
 void MUONMatcher::runONNXRuntime()
 {
-
+  
   std::cout<<"ONNXRUntime is running....."<<endl;
 
   std::string model_file = "";
@@ -2257,22 +2365,10 @@ void MUONMatcher::runONNXRuntime()
 
   auto input_shape = input_shapes[0];
   input_shape[0] = 1;
-  /*
-  // print name/shape of inputs
-  LOG(INFO) << "Input Node Name/Shape (" << input_names.size() << "):";
-  for (size_t i = 0; i < input_names.size(); i++) {
-    LOG(INFO) << "\t" << input_names[i] << " : " << print_shape(input_shapes[i]);
-  }
 
-  // print name/shape of outputs
-  LOG(INFO) << "Output Node Name/Shape (" << output_names.size() << "):";
-  for (size_t i = 0; i < output_names.size(); i++) {
-    LOG(INFO) << "\t" << output_names[i] << " : " << print_shape(output_shapes[i]);
-  }
-  */
   // Assume model has 1 input node and 1 output node.
-  assert(input_names.size() == 1 && output_names.size() == 1);
-
+  //assert(input_names.size() == 1 && output_names.size() == 1);
+  
   // Runs matching over all tracks on a single event
   std::cout << "Number of MCH Tracks = " << mMatchingHelper.nMCHTracks << std::endl;
   std::cout << "Annotation: " << mMatchingHelper.Annotation() << std::endl;
@@ -2283,6 +2379,7 @@ void MUONMatcher::runONNXRuntime()
   auto nMCHTracks = 0;
   auto nGlobalMuonTracksExt = 0;
   for (int event = 0; event < mNEvents; event++) {
+
     nMCHTracks += (int)mSortedGlobalMuonTracks[event].size();
     if (mVerbose)
       std::cout << "Matching event # " << event << ": " << mSortedGlobalMuonTracks[event].size() << " MCH Tracks" << std::endl;
@@ -2294,36 +2391,32 @@ void MUONMatcher::runONNXRuntime()
 	gTrack.setMatchingChi2(-999);
           auto mftTrackID = 0;
           for (auto mftTrack : mSortedMFTTracks[event]) {
-            //auto MFTlabel = mftTrackLabels.getLabels(mftTrackLabelsIDx[event][mftTrackID]);
+            
 	    auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
-            if (matchingCut(gTrack, mftTrack)) {
+            
+	    if (matchingCut(gTrack, mftTrack)) {
 
 	      gTrack.countCandidate();
 
 	      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
-		//if (MFTlabel[0].getTrackID() == MCHlabel[0].getTrackID())
                 gTrack.setCloseMatch();
 	      }
-
-	      //gTrack.setMatchingChi2(gTrack.getMatchingChi2);
 
 	      std::vector<float> input_tensor_values = getTrainingVariables(gTrack,mftTrack);
 	      std::vector<Ort::Value> input_tensors;
 	      input_tensors.push_back(Ort::Experimental::Value::CreateTensor<float>(input_tensor_values.data(), input_tensor_values.size(), input_shape));
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
-	      assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
 
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
-
+	      
 	      Float_t prob = -999;
-
+	      
 	      if(model_file.find("lightGBM") != std::string::npos){
 		const float* output_value = output_tensors[1].GetTensorData<float>();
-		if( output_value[0] <  output_value[1]){
+		if( output_value[0] <  output_value[1])
 		  prob = output_value[1];
-		}
 	      }
-
+	      
 	      else if(model_file.find("tfNN") != std::string::npos){
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
@@ -2334,7 +2427,6 @@ void MUONMatcher::runONNXRuntime()
 		gTrack.setMatchingChi2(prob);
 	      }
 
-
             }
             mftTrackID++;
           }
@@ -2344,31 +2436,29 @@ void MUONMatcher::runONNXRuntime()
       // store all given matches for performance studies
       // loop MCH tracks
       for (auto& track : mSortedMCHTracks[event]) {
-        //printf("BV: MCH track %d \n", GTrackID);
+
         mMCHTrackExtrap.extrapToVertexWithoutBranson(&track, mMatchingPlaneZ);
         GlobalMuonTrackExt gTrackTmp{MCHtoGlobal(track)};
+
         auto MCHlabel = mSortedMCHTrackLabels[event].getLabels(GTrackID);
         auto mftTrackID = 0;
+
         for (auto mftTrack : mSortedMFTTracks[event]) {
-          //printf("BV: MFT track %d \n", mftTrackID);
-          //auto MFTlabel = mftTrackLabels.getLabels(mftTrackLabelsIDx[event][mftTrackID]);
+
 	  auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
-          //if (MFTlabel[0].getEventID() == event) {
+
 	  if (MFTlabel.getEventID() == event) {
             if (matchingCut(gTrackTmp, mftTrack)) {
-
-	      //training_list_name = ["MCH_InvQPt","MFT_TrackReducedChi2","Delta_X","Delta_Y","Delta_XY","Delta_InvQPt"];
 
 	      GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
               gTrack.setParametersMCH(gTrack.getParameters());
               gTrack.setCovariancesMCH(gTrack.getCovariances());
               gTrack.countCandidate();
-              //printf("BV: match MCH %d MFT %d \n", GTrackID, mftTrackID);
 
 	      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
-		//if (MFTlabel[0].getTrackID() == MCHlabel[0].getTrackID()) {
                 gTrack.setCloseMatch();
               }
+
               auto chi2 = matchingEval(gTrack, mftTrack);
               gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[event][mftTrackID]);
               gTrack.setParametersMFT(mftTrack.getParameters());
@@ -2382,8 +2472,10 @@ void MUONMatcher::runONNXRuntime()
 
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
 
-	      assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
-
+	      //assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
+	      
+	      //cout<<"HHHHH         "<<output_tensors.size()<<"   "<<session.GetOutputNames().size()<<endl;
+	      
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
 
 	      Float_t prob = -999;
@@ -2397,9 +2489,9 @@ void MUONMatcher::runONNXRuntime()
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
 	      }
-
+	      
 	      gTrack.setMatchingChi2(prob);
-
+	      
 	      mSortedGlobalMuonTracksExt[event].push_back(gTrack);
             } // matching cut
           }   // end event match, MFT
@@ -2427,7 +2519,7 @@ void MUONMatcher::runONNXRuntime()
 std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrack,const MFTTrack& mftTrack)
 {
 
-    Float_t MFT_X      = mftTrack.getX();
+  Float_t MFT_X      = mftTrack.getX();
   Float_t MFT_Y      = mftTrack.getY();
   Float_t MFT_Phi    = mftTrack.getPhi();
   Float_t MFT_Tanl   = mftTrack.getTanl();
@@ -2460,7 +2552,7 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MCH_Y      = mchTrack.getY();
   Float_t MCH_Phi    = mchTrack.getPhi();
   Float_t MCH_Tanl   = mchTrack.getTanl();
-  Float_t MCH_Eta   = mchTrack.getEta();
+  Float_t MCH_Eta    = mchTrack.getEta();
   Float_t MCH_InvQPt = mchTrack.getInvQPt();
   Float_t MCH_QPt    = mchTrack.getPt()*mchTrack.getCharge();
   Float_t MCH_Pt     = 1./abs(MCH_QPt);
@@ -2502,7 +2594,6 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t Delta_P      = MCH_P      - MFT_P ;
   Float_t Delta_Ch     = MCH_Ch     - MFT_Ch ;
 
-
   Float_t Ratio_X      = MCH_X      / MFT_X;
   Float_t Ratio_Y      = MCH_Y      / MFT_Y;
   Float_t Ratio_Phi    = MCH_Phi    / MFT_Phi;
@@ -2520,30 +2611,33 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MatchingScore = matchingEval(mchTrack, mftTrack);
   
   std::vector<float> input_tensor_values{
-    MFT_Phi,MFT_Eta,MFT_Pt,MFT_P,MFT_Ch
-      ,MCH_Phi,MCH_Eta,MCH_Pt,MCH_P,MCH_Ch
-      ,MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,MatchingScore
-      ,Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Eta,Delta_Pt,Delta_Px,Delta_Py,Delta_Pz,Delta_P,Delta_Ch
+      MFT_InvQPt,
+      MFT_X,
+      MFT_Y,
+      MFT_Phi,
+      MFT_Tanl,
 
-  /*
-    MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_Pt,MFT_Px,MFT_Py,MFT_Pz,MFT_P,MFT_Ch
-    ,MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_Pt,MCH_Px,MCH_Py,MCH_Pz,MCH_P,MCH_Ch
-    ,MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,MatchingScore
-    //,MFT_Cov00,MFT_Cov01,MFT_Cov11,MFT_Cov02,MFT_Cov12,MFT_Cov22,MFT_Cov03,MFT_Cov13,MFT_Cov23,MFT_Cov33,MFT_Cov04,MFT_Cov14,MFT_Cov24,MFT_Cov34,MFT_Cov44
-    //,MCH_Cov00,MCH_Cov01,MCH_Cov11,MCH_Cov02,MCH_Cov12,MCH_Cov22,MCH_Cov03,MCH_Cov13,MCH_Cov23,MCH_Cov33,MCH_Cov04,MCH_Cov14,MCH_Cov24,MCH_Cov34,MCH_Cov44
-    ,Delta_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_Pt,Delta_Px,Delta_Py,Delta_Pz,Delta_P,Delta_Ch
-    //,Ratio_X,Ratio_Y,Ratio_Phi,Ratio_Tanl,Ratio_Pt,Ratio_Px,Ratio_Py,Ratio_Pz,Ratio_P,Ratio_Ch
-    */
+      MCH_InvQPt,
+      MCH_X,
+      MCH_Y,
+      MCH_Phi,
+      MCH_Tanl,
+
+      MFT_TrackChi2,
+      MFT_NClust,
+      MFT_TrackReducedChi2,
+
+      Delta_InvQPt,
+      Delta_X,
+      Delta_Y,
+      Delta_XY,
+      Delta_Phi,
+      Delta_Tanl,
+
+      Delta_Ch
   };
-  
-  /*
-  std::vector<float> input_tensor_values{
-    MFT_X,MFT_Y,MFT_Phi,MFT_Tanl,MFT_InvQPt,MFT_Cov00,MFT_Cov01,MFT_Cov11,MFT_Cov02,MFT_Cov12,MFT_Cov22,MFT_Cov03,MFT_Cov13,MFT_Cov23,MFT_Cov33,MFT_Cov04,MFT_Cov14,MFT_Cov24,MFT_Cov34,MFT_Cov44,
-    MCH_X,MCH_Y,MCH_Phi,MCH_Tanl,MCH_InvQPt,MCH_Cov00,MCH_Cov01,MCH_Cov11,MCH_Cov02,MCH_Cov12,MCH_Cov22,MCH_Cov03,MCH_Cov13,MCH_Cov23,MCH_Cov33,MCH_Cov04,MCH_Cov14,MCH_Cov24,MCH_Cov34,MCH_Cov44,
-    MFT_TrackChi2,MFT_NClust,MFT_TrackReducedChi2,
-      Ratio_X,Delta_Y,Delta_XY,Delta_Phi,Delta_Tanl,Delta_InvQPt,Matching_Chi2
-  };
-  */
+
+
   return input_tensor_values;
 
 

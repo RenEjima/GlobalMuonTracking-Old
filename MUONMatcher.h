@@ -768,7 +768,7 @@ void MLParCovChiNPtsMatchingScore43Features(const MCHTrackConv& mchTrack, const 
 //_________________________________________________________________________________________________
 void MLParCovChiNPtsMatchingScore43FeaturesNames(string* featuresNames)
 {
-  std::cout << "Setting features names: MLParCovChiNPts42FeaturesNames" << std::endl;
+  std::cout << "Setting features names: MLParCovChiNPts43FeaturesNames" << std::endl;
 
   featuresNames[0] = "MFT_X";
   featuresNames[1] = "MFT_Y";
