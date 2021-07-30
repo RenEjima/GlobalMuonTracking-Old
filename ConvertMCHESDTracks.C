@@ -63,21 +63,20 @@ void ConvertMCHESDTracks(string in_dir = "") {
 
       if (!esdTrack->ContainTrackerData() || esdTrack->GetLabel() < 0)
         continue;
-
+      
       TParticle *part = stack->Particle(esdTrack->GetLabel());
 
-      // if(esdTrack->GetMatchTrigger()<1) continue; if(esdTrack->GetChi2() /
-      // esdTrack->GetNDF()>5.0)                             continue;
-      // if(-3.6>esdTrack->Eta() && esdTrack->Eta()>-2.1) continue;
-      // if(17.6>esdTrack->GetRAtAbsorberEnd() &&
-      // esdTrack->GetRAtAbsorberEnd()>89.5) continue;
+      if(esdTrack->GetMatchTrigger()<1) continue; 
+      if(esdTrack->GetChi2() /esdTrack->GetNDF()>5.0) continue;
+      if(-3.6>esdTrack->Eta() && esdTrack->Eta()>-2.5) continue;
+      if(17.6>esdTrack->GetRAtAbsorberEnd() && esdTrack->GetRAtAbsorberEnd()>89.5) continue;
 
       tempMCHTrackGetter t(*esdTrack);
       tempMCHTrack thisTrack;
       t.update(thisTrack);
       thisTrack.fiEv = iEv;
       tempMCHTracks.push_back(thisTrack);
-
+      
       ++fNMCH;
     }
 
