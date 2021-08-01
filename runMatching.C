@@ -68,10 +68,6 @@ void loadAndSetMatchingConfig()
       std::cout << " Setting " << matching_fcn << std::endl;
       matcher.setMatchingFunction(&MUONMatcher::matchHiroshima);
     }
-    if (matching_fcn.find("matchHiroshimaReverse_") < matching_fcn.length()) {
-      std::cout << " Setting " << matching_fcn << std::endl;
-      matcher.setMatchingFunction(&MUONMatcher::matchHiroshimaReverse);
-    }
     if (matching_fcn.find("trainedML_") < matching_fcn.length()) {
       std::cout << " Setting " << matching_fcn << std::endl;
       matcher.setMatchingFunction(&MUONMatcher::matchTrainedML);
@@ -127,17 +123,17 @@ void loadAndSetMatchingConfig()
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCutDistanceAndAngles);
     }
-    if (matching_cutfcn.find("cutDistanceAndAngles3Sigma_") <
+    if (matching_cutfcn.find("cutDistanceAndAngles3Sigma_") < 
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCut3SigmaXYAngles);
     }
-    if (matching_cutfcn.find("cut3Sigma_") <
+    if (matching_cutfcn.find("cut3Sigma_") < 
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCut3Sigma);
     }
-    if (matching_cutfcn.find("cutNSigma_") <
+    if (matching_cutfcn.find("cutNSigma_") < 
         matching_cutfcn.length()) {
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCutNSigma);
@@ -220,7 +216,8 @@ int runMatching()
   //                             5, "ML5ParDeltas");
 
   // ML Features and names defined by separete function(s)
-  matcher.setMLFeatureFunction(MLParCovChiNPtsMatchingScore43Features, 43, "MLParCov43Features", MLParCovChiNPtsMatchingScore43FeaturesNames);
+  matcher.setMLFeatureFunction(MLParCovChiNPtsMatchingScore43Features, 43, "MLParCovChiNPtsMatchingScore43Features", MLParCovChiNPtsMatchingScore43FeaturesNames);
+  //matcher.setMLFeatureFunction(MLParCovChiNPts42Features, 42, "MLParCovChiNPts42Features", MLParCovChiNPts42FeaturesNames);
 
   // Configure matcher according command line options
   loadAndSetMatchingConfig();
@@ -235,11 +232,10 @@ int runMatching()
   // covariances matrix to MFT coordinate system
   matcher.initGlobalTracks();
 
-  if(std::getenv("ML_EXPORTTRAINDATA")) evalMLExportOrTrain();
+  evalMLExportOrTrain();
 
-  if(std::getenv("ML_ONNX")) matcher.runONNXRuntime();
-  else matcher.runEventMatching();
-  
+  //matcher.runEventMatching();
+  matcher.runONNXRuntime();
 
   // Kalman filter
   matcher.fitTracks();

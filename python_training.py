@@ -181,6 +181,7 @@ def calcFeatures():
     MCH_Py = np.sin(MCH_Phi) * MCH_Pt
     MCH_Pz = MCH_Tanl * MCH_Pt
     MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
+
     MCH_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MCH_Tanl)) / 2))
 
     Delta_X = MCH_X - MFT_X
@@ -209,91 +210,34 @@ def calcFeatures():
     Ratio_P = MCH_P / MFT_P
     Ratio_Ch = MCH_Ch / MFT_Ch
 
-    #features.append(MFT_X)
-    #features.append(MFT_Y)
+    features.append(MFT_InvQPt)
+    features.append(MFT_X)
+    features.append(MFT_Y)
     features.append(MFT_Phi)
-    #features.append(MFT_Tanl)
-    features.append(MFT_Eta)
-    features.append(MFT_Pt)
-    #features.append(MFT_Px)
-    #features.append(MFT_Py)
-    #features.append(MFT_Pz)
-    features.append(MFT_P)
-    features.append(MFT_Ch)
+    features.append(MFT_Tanl)
 
-    #features.append(MCH_X)
-    #features.append(MCH_Y)
+    features.append(MCH_InvQPt)
+    features.append(MCH_X)
+    features.append(MCH_Y)
     features.append(MCH_Phi)
-    #features.append(MCH_Tanl)
-    features.append(MCH_Eta)
-    features.append(MCH_Pt)
-    #features.append(MCH_Px)
-    #features.append(MCH_Py)
-    #features.append(MCH_Pz)
-    features.append(MCH_P)
-    features.append(MCH_Ch)
-
+    features.append(MCH_Tanl)
+    
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
     features.append(MFT_TrackReducedChi2)
-    features.append(MatchingScore)
-    '''
-    features.append(MFT_Cov00)
-    features.append(MFT_Cov01)
-    features.append(MFT_Cov11)
-    features.append(MFT_Cov02)
-    features.append(MFT_Cov12)
-    features.append(MFT_Cov22)
-    features.append(MFT_Cov03)
-    features.append(MFT_Cov13)
-    features.append(MFT_Cov23)
-    features.append(MFT_Cov33)
-    features.append(MFT_Cov04)
-    features.append(MFT_Cov14)
-    features.append(MFT_Cov24)
-    features.append(MFT_Cov34)
-    features.append(MFT_Cov44)
+    #features.append(MatchingScore)
 
-    features.append(MCH_Cov00)
-    features.append(MCH_Cov01)
-    features.append(MCH_Cov11)
-    features.append(MCH_Cov02)
-    features.append(MCH_Cov12)
-    features.append(MCH_Cov22)
-    features.append(MCH_Cov03)
-    features.append(MCH_Cov13)
-    features.append(MCH_Cov23)
-    features.append(MCH_Cov33)
-    features.append(MCH_Cov04)
-    features.append(MCH_Cov14)
-    features.append(MCH_Cov24)
-    features.append(MCH_Cov34)
-    features.append(MCH_Cov44)
-    '''
+    features.append(Delta_InvQPt)
     features.append(Delta_X)
     features.append(Delta_Y)
     features.append(Delta_XY)
     features.append(Delta_Phi)
-    #features.append(Delta_Tanl)
-    features.append(Delta_Eta)
-    features.append(Delta_Pt)
-    features.append(Delta_Px)
-    features.append(Delta_Py)
-    features.append(Delta_Pz)
-    features.append(Delta_P)
+    features.append(Delta_Tanl)
+
     features.append(Delta_Ch)
-    '''
-    features.append(Ratio_X)
-    features.append(Ratio_Y)
-    features.append(Ratio_Phi)
-    features.append(Ratio_Tanl)
-    features.append(Ratio_Pt)
-    features.append(Ratio_Px)
-    features.append(Ratio_Py)
-    features.append(Ratio_Pz)
-    features.append(Ratio_P)
-    features.append(Ratio_Ch)
-    '''
+    
+    print(Ratio_Ch)
+    
     return features
 
 def getExpVar():
@@ -330,7 +274,7 @@ def getSampledTrainData(X_train,y_train):
     return X_train_sampled,y_train_sampled
 
 def buildModel_lightGBM():
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=20,n_estimators=10000,metric="custom")
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=10,n_estimators=1500,metric="custom")
     return model
 
 def registerConvONNX_lightGBM():
@@ -365,11 +309,12 @@ def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
 
     print("accuracy:  ",accuracy_score(y_test,pred_onnx_model))
     print("precision: ",precision_score(y_test,pred_onnx_model))
-
-    print(type(pred_model_proba))
+    
     print('Pure-LightGBM predicted proba')
     print(pred_model_proba)
-
+    #print(X_test[:,2])
+    #print(X_test[:,6])
+    
     print('ONNX-LightGBM predicted proba')
     print(pred_onnx_model_proba)
 
