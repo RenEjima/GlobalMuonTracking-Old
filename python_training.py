@@ -1,12 +1,11 @@
 import os
 import sys
 import math
-import pickle
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-import uproot
+import uproot3 as uproot
 
 import onnxmltools
 import onnxruntime as rt
@@ -32,6 +31,7 @@ import xgboost as xgb
 from lightgbm import LGBMClassifier
 from xgboost import XGBClassifier
 
+'''
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -43,14 +43,23 @@ from tensorflow.keras.layers.experimental import preprocessing
 
 import keras2onnx
 import tf2onnx
+'''
 
+from sklearn.metrics import log_loss
 from sklearn.metrics import auc
 from sklearn.metrics import precision_recall_curve
 
 from imblearn.under_sampling import RandomUnderSampler
-
+import optuna
 import gc
 
+import time
+
+from pathlib import Path
+from sklearn.metrics import f1_score
+from scipy.misc import derivative
+import dill
+import pickle
 def getTrainingModel():
     return os.environ['ML_MODULE']
 
@@ -105,6 +114,9 @@ def getParameters():
 
     params.append(matchTree.array("MatchingScore"))
 
+    params.append(addTree.array("Delta_Z"))
+    print("np.array(params)")
+    print(addTree.array("Delta_Z").shape)
     return np.array(params)
 
 def calcFeatures():
@@ -164,6 +176,7 @@ def calcFeatures():
     MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust
 
     MatchingScore = params[42]
+    Delta_Z = params[43]
 
     MFT_Ch = np.where( MFT_InvQPt < 0, -1, 1)
 
@@ -172,7 +185,7 @@ def calcFeatures():
     MFT_Py = np.sin(MFT_Phi) * MFT_Pt
     MFT_Pz = MFT_Tanl * MFT_Pt
     MFT_P = MFT_Pt * np.sqrt(1. + MFT_Tanl*MFT_Tanl)
-    MFT_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MFT_Tanl)) / 2))
+    #MFT_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MFT_Tanl)) / 2))
 
     MCH_Ch = np.where( MCH_InvQPt < 0, -1, 1)
 
@@ -182,13 +195,13 @@ def calcFeatures():
     MCH_Pz = MCH_Tanl * MCH_Pt
     MCH_P = MCH_Pt * np.sqrt(1. + MCH_Tanl*MCH_Tanl)
 
-    MCH_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MCH_Tanl)) / 2))
+    #MCH_Eta = -np.log(np.tan((np.pi/2. - np.arctan(MCH_Tanl)) / 2))
 
     Delta_X = MCH_X - MFT_X
     Delta_Y = MCH_Y - MFT_Y
     Delta_XY = np.sqrt((MCH_X - MFT_X)**2 + (MCH_Y - MFT_Y)**2)
     Delta_Phi = MCH_Phi - MFT_Phi
-    Delta_Eta = MCH_Eta - MFT_Eta
+    #Delta_Eta = MCH_Eta - MFT_Eta
     Delta_Tanl = MCH_Tanl - MFT_Tanl
     Delta_InvQPt = MCH_InvQPt - MFT_InvQPt
     Delta_Pt = MCH_Pt - MFT_Pt
@@ -221,11 +234,11 @@ def calcFeatures():
     features.append(MCH_Y)
     features.append(MCH_Phi)
     features.append(MCH_Tanl)
-    
+
     features.append(MFT_TrackChi2)
     features.append(MFT_NClust)
     features.append(MFT_TrackReducedChi2)
-    #features.append(MatchingScore)
+    features.append(MatchingScore)
 
     features.append(Delta_InvQPt)
     features.append(Delta_X)
@@ -235,9 +248,28 @@ def calcFeatures():
     features.append(Delta_Tanl)
 
     features.append(Delta_Ch)
-    
-    print(Ratio_Ch)
-    
+    '''
+    features.append(MFT_Pt)
+    features.append(MCH_Pt)
+    features.append(Delta_Pt)
+    features.append(Ratio_Pt)
+    '''
+    features.append(Ratio_InvQPt)
+    features.append(Ratio_X)
+    features.append(Ratio_Y)
+    features.append(Ratio_Phi)
+    features.append(Ratio_Tanl)
+
+    features.append(Ratio_Ch)
+
+    features.append(Delta_Z)
+    #print(Ratio_Ch)
+    print("MFT_X")
+    print(MFT_X.shape)
+    print("Delta_Z")
+    print(Delta_Z.shape)
+    print("params[43]")
+    print(params[43].shape)
     return features
 
 def getExpVar():
@@ -263,7 +295,7 @@ def getData(X,y):
     del y
     gc.collect()
     return X_train,y_train,X_test,y_test,X_eval,y_eval
-    
+
 def getSampledTrainData(X_train,y_train):
     print('down sampling now ...')
     sampler = RandomUnderSampler(sampling_strategy={0: y_train.sum(), 1: y_train.sum()}, random_state=42)
@@ -274,7 +306,36 @@ def getSampledTrainData(X_train,y_train):
     return X_train_sampled,y_train_sampled
 
 def buildModel_lightGBM():
-    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=10,n_estimators=1500,metric="custom")
+    model = LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=10,n_estimators=150000,metric="custom")
+    '''
+    model = LGBMClassifier(boosting_type='gbdt',
+                           objective='binary',
+                           learning_rate=0.586339908940463,
+                           max_depth=3,
+                           n_estimators=150000,
+                           metric="custom",
+                           num_leaves=83,
+                           min_child_samples=68,
+                           min_child_weight=72.20006600361943,
+                           reg_alpha=28.94771523379064,
+                           reg_lambda=18.327304287091614,
+                           subsample=0.02108743864130606,
+                           subsample_freq=1,
+                           colsample_bytree=0.0056907807163545186)
+    '''
+    '''
+    model = LGBMClassifier(boosting_type='gbdt',
+                           objective='binary',
+                           learning_rate=0.58,
+                           max_depth=3,
+                           n_estimators=150000,
+                           metric="custom",
+                           num_leaves=83,
+                           min_child_samples=68,
+                           min_child_weight=72.2,
+                           reg_alpha=28.9,
+                           reg_lambda=18.3,)
+    '''
     return model
 
 def registerConvONNX_lightGBM():
@@ -295,7 +356,6 @@ def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
     input_name = session_model.get_inputs()[0].name
     output_name1 = session_model.get_outputs()[0].name #labels
     output_name2= session_model.get_outputs()[1].name #probabilitoes
-
     pred_onnx_model = session_model.run([output_name1], {"input": X_test.astype(np.float32)})
     pred_onnx_model_proba = session_model.run([output_name2], {"input": X_test.astype(np.float32)})
     pred_model = model.predict(X_test)
@@ -309,12 +369,12 @@ def getPredict_lightGBM(model,onnx_model_name,X_test,y_test):
 
     print("accuracy:  ",accuracy_score(y_test,pred_onnx_model))
     print("precision: ",precision_score(y_test,pred_onnx_model))
-    
+
     print('Pure-LightGBM predicted proba')
     print(pred_model_proba)
     #print(X_test[:,2])
     #print(X_test[:,6])
-    
+
     print('ONNX-LightGBM predicted proba')
     print(pred_onnx_model_proba)
 
@@ -366,7 +426,7 @@ def getPredict_XGBoost(model,onnx_model_name,X_test,y_test):
 
     return pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba
 
-
+'''
 def buildModel_tensorflowNN(normalize, colExpVarDim):
 
     model = tf.keras.Sequential([
@@ -450,7 +510,7 @@ def showInfo_tensorflowNN(training_history):
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
     plt.show()
-
+'''
 def default_theme():
     plt.rc('axes', labelsize=16, labelweight='bold')
     plt.rc('xtick', labelsize=14)
@@ -469,6 +529,53 @@ def showONNXInfo(model_onnx):
     ax.get_yaxis().set_visible(False)
     plt.show()
 
+def calibration(y_proba, beta):
+    return y_proba / (y_proba + (1 - y_proba) / beta)
+
+def focal_loss_lgb_sk(y_true, y_pred, alpha, gamma):
+    """
+    Focal Loss for lightgbm
+
+    Parameters:
+    -----------
+    y_pred: numpy.ndarray
+        array with the predictions
+    dtrain: lightgbm.Dataset
+    alpha, gamma: float
+        See original paper https://arxiv.org/pdf/1708.02002.pdf
+    """
+    a,g = alpha, gamma
+    def fl(x,t):
+        p = 1/(1+np.exp(-x))
+        #p = x
+        #return -( a*t + (1-a)*(1-t) ) * (( 1 - ( t*p + (1-t)*(1-p)) )**g) * ( t*np.log(p)+(1-t)*np.log(1-p) )
+        return -(a*t*(1.-p)**g)*np.log(p)*2./p-((1.-a)*(1.-t)*p**g)*np.log(1-p)*2./(1-p)
+    def get_partial_fl(x):
+        return fl(x, y_true)
+    #partial_fl = lambda x: fl(x, y_true)
+    #partial_fl = get_partial_fl(x)
+    grad = derivative(get_partial_fl, y_pred, n=1, dx=1e-6)
+    hess = derivative(get_partial_fl, y_pred, n=2, dx=1e-6)
+    return grad, hess
+
+def focal_loss_lgb_eval_error_sk(y_true, y_pred, alpha, gamma):
+    """
+    Adapation of the Focal Loss for lightgbm to be used as evaluation loss
+
+    Parameters:
+    -----------
+    y_pred: numpy.ndarray
+        array with the predictions
+    dtrain: lightgbm.Dataset
+    alpha, gamma: float
+        See original paper https://arxiv.org/pdf/1708.02002.pdf
+    """
+    a,g = alpha, gamma
+    p = 1/(1+np.exp(-y_pred))
+    #p = y_pred
+    #loss = -( a*y_true + (1-a)*(1-y_true) ) * (( 1 - ( y_true*p + (1-y_true)*(1-p)) )**g) * ( y_true*np.log(p)+(1-y_true)*np.log(1-p) )
+    loss = -(a*y_true*(1.-p)**g)*np.log(p)*2./p-((1.-a)*(1.-y_true)*p**g)*np.log(1-p)*2./(1-p)
+    return 'focal_loss', np.mean(loss), False
 
 ########################################################################
 ########################################################################
@@ -484,29 +591,114 @@ def showONNXInfo(model_onnx):
 #Global variables
 file = uproot.open(os.environ['ML_TRAINING_FILE'])
 matchTree = file["matchTree"]
+addTree = file["addTree"]
 
 X = getExpVar()
 y = getObjVar()
 
+print("y")
+print(y)
+
 rowExpVarDim,colExpVarDim = getInputDim(X)
 X_train,y_train,X_test,y_test,X_eval,y_eval = getData(X,y)
-X_train,y_train = getSampledTrainData(X_train,y_train) #get balanced training data
+#X_train,y_train = getSampledTrainData(X_train,y_train) #get balanced training data
+
+print("training data")
+print("positive")
+print(np.sum(y_train == 1))
+print("negative")
+print(np.sum(y_train == 0))
+print("validation data")
+print("positive")
+print(np.sum(y_eval == 1))
+print("negative")
+print(np.sum(y_eval == 0))
+print("test data")
+print("positive")
+print(np.sum(y_test == 1))
+print("negative")
+print(np.sum(y_test == 0))
 
 model_type=getTrainingModel()
 
 def prauc(data,preds):
+    #sampling_rate = 4446./(4446.+713951.)
+    #calibPreds = calibration(preds, sampling_rate)
     precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(data, preds)
     area_lgb = auc(recall_lgb, precision_lgb)
     metric = area_lgb
     return 'PR-AUC', metric, True
 
+def normalizedEntropy(data,preds):
+    p =4446./(4446.+713951.)
+    normalizedlogloss = log_loss(data,preds)/(-p*math.log(p)-(1.-p)*math.log(1.-p))
+    metric = normalizedlogloss
+    return 'NE', metric, False
+def get_focal_loss(x, y):
+    return focal_loss_lgb_sk(x, y, 0.99 , 5.)
+def get_focal_error(x, y):
+    return focal_loss_lgb_eval_error_sk(x, y, 0.99 , 5.)
+#def classScaledLogloss(data,preds):
+
+'''    
+def objectives(trial):
+
+    # optunaでのハイパーパラメータサーチ範囲の設定
+    params = {
+            'num_leaves': trial.suggest_int('num_leaves', 2, 256),
+            'min_child_samples': trial.suggest_int('min_child_samples', 2, 100),
+            'max_depth': trial.suggest_int('max_depth', 2, 10),
+            'min_child_weight': trial.suggest_uniform('min_child_weight', 2., 100.),
+            'reg_alpha': trial.suggest_uniform('reg_alpha', 0.01, 100.),
+            'reg_lambda': trial.suggest_uniform('reg_lambda', 0.01, 100.),
+            'learning_rate': trial.suggest_uniform('learning_rate',0.001,0.999),
+            'n_estimators': 10000,
+            'subsample': trial.suggest_uniform('subsample',0.001,1.0),
+            'subsample_freq': trial.suggest_int('subsample_freq',0.,1.0),
+            'colsample_bytree':trial.suggest_uniform('colsample_bytree',0.001,1.0),
+            }
+
+    # LightGBMで学習+予測
+    model = lgb.LGBMClassifier(**params)# 追加部分
+    model.fit(X_train, y_train,eval_set=(X_eval,y_eval),eval_metric='logloss',early_stopping_rounds=2000,verbose=False)
+
+    y_pred = model.predict(X_test)
+    y_pred_proba_eval = model.predict_proba(X_eval)
+
+    # 検証データを用いた評価
+    precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(y_eval, y_pred_proba_eval[:, 1])
+    area_lgb = auc(recall_lgb, precision_lgb)
+    score = area_lgb
+
+    return score
+'''
 def main():
 
     if model_type == 'lightGBM':
+
+        #focal_loss = lambda x,y: focal_loss_lgb_sk(x, y, 0.25, 2.)
+        #eval_error = lambda x,y: focal_loss_lgb_eval_error_sk(x, y, 0.25, 2.)
+        '''
+        def get_focal_loss(x, y):
+            return focal_loss_lgb_sk(x, y, 0.25, 2.)
+        def get_focal_error(x, y):
+            return focal_loss_lgb_eval_error_sk(x, y, 0.25, 2.)
+        #focal_loss = get_focal_loss(x, y)
+        #eval_error = get_focal_error(x, y)
+        '''
+        #model = LGBMClassifier(boosting_type='gbdt',objective=get_focal_loss,n_estimators=150,metric="custom")
+        model=LGBMClassifier(boosting_type='gbdt',objective='binary',learning_rate=0.01,max_depth=10,n_estimators=150000,metric="custom")
+        print("training is starting")
+        model.fit(
+            X_train,
+            y_train,
+            eval_set=[(X_eval, y_eval)],
+            eval_metric=prauc,
+            early_stopping_rounds=1000,)
+
+        '''
         model = buildModel_lightGBM()
-
-        #training_history = model.fit(X_train, y_train)
-
+        training_start = time.time()
         training_history = model.fit(X_train, y_train,
             eval_metric=prauc,
             eval_set=[
@@ -516,15 +708,49 @@ def main():
             eval_names=['train', 'validation'],
             early_stopping_rounds=1000,
         )
+        training_elapsed_time = time.time() - training_start
+        print ("training_elapsed_time:{0}".format(training_elapsed_time) + "[sec]")
+        '''
+        '''
+        # optunaによる最適化呼び出し
+        opt = optuna.create_study(direction='maximize',sampler=optuna.samplers.RandomSampler(seed=0))
+        opt.optimize(objectives, n_trials=500)
 
-        model_onnx = buildONNXModel_lightGBM(model)
+        # 最適パラメータ取得
+        trial = opt.best_trial
+        params_best = dict(trial.params.items())
+        params_best['random_seed'] = 0
 
-        saveONNXModel(model_onnx,'lightGBM.onnx')
+        # 最適パラメータで学習/予測
+        model_o = lgb.LGBMClassifier(**params_best)# 追加部分
+        model_o.fit(X_train, y_train,eval_set=(X_eval,y_eval),eval_metric='logloss',early_stopping_rounds=2000,verbose=False)
+        y_test_pred = model_o.predict(X_test)
+        y_test_proba = model_o.predict_proba(X_test)
 
-        pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_lightGBM(model,'lightGBM.onnx',X_test,y_test)
-        precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(y_test, pred_model_proba)
+        precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(y_test, y_test_proba[:, 1])
         area_lgb = auc(recall_lgb, precision_lgb)
         print ("AUPR score: %0.2f" % area_lgb)
+        '''
+        pickle.dump(model, open('./deltaZmodel.dill','wb'))
+        #model_onnx = buildONNXModel_lightGBM(model)
+        
+        #saveONNXModel(model_onnx,'lightGBM.onnx')
+
+        #pred_model, pred_onnx_model, pred_model_proba, pred_onnx_model_proba = getPredict_lightGBM(model,'lightGBM.onnx',X_test,y_test)
+        #pred_model_proba = 1./(1.+np.exp(-model.predict_proba(X_test)))
+        pred_model_proba = model.predict_proba(X_test)
+        #pred_model_proba = pred_model_proba[:,1]
+        #print('prediction')
+        np.set_printoptions(threshold=np.inf)
+        #print(pred_model_proba)
+        precision_lgb, recall_lgb, thresholds_lgb = precision_recall_curve(y_test, pred_model_proba[:,1])
+        area_lgb = auc(recall_lgb, precision_lgb)
+        atest = 0.99975
+        gtest = 4.
+        #focal_test = -(atest*y_test*(1.-pred_model_proba)**gtest)*np.log(pred_model_proba)-((1.-atest)*(1.-y_test)*pred_model_proba**gtest)*np.log(1-pred_model_proba)
+        #focal_test = np.mean(focal_test)
+        #print ("test PR-AUC score: %0.8f" % area_lgb)
+        #print ("test Focal Loss: %0.8f" % focal_test)
         fig = plt.figure(figsize=(6,6))
         ax = fig.add_subplot(1, 1, 1)
         lgb.plot_metric(model)
@@ -537,6 +763,10 @@ def main():
         ax.legend(loc="upper right")
         fig.savefig('./MLResultPRCurveLGBM.png', format="png")
         plt.savefig("./MLResultPRAUCLGBM.png", format="png")
+        plt.show()
+        
+        print('LightGBM feature importance')
+        print(model.booster_.feature_importance(importance_type='gain'))
 
     elif model_type == 'XGBoost':
         model = buildModel_XGBoost()
@@ -581,7 +811,7 @@ def main():
         ax.set_title('Precision(Purity)-Recall(Efficiency) curve')
         ax.legend(loc="upper right")
         fig.savefig('MLResultPRCurveXBoost.png', format="png")
-
+        '''
     elif model_type == 'tfNN':
 
         print("Num GPUs Available: ", len(tf.config.experimental.list_physical_devices('GPU')))
@@ -607,7 +837,7 @@ def main():
         print("precision: ",precision_score(y_test,pred_onnx_model))
 
         showInfo_tensorflowNN(training_history)
-
+        '''
     else:
         print("You didn't select corect ML module option\n")
         print("You must chose one module from lightGBM, TensorFlowNN, XGBoost\n")

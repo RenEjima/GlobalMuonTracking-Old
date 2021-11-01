@@ -357,6 +357,8 @@ void MUONMatcher::initGlobalTracks()
       helper.MatchingCutFunc = "_cutNSigma";
     if (mCutFunc == &MUONMatcher::matchCutVarXYAngles)
       helper.MatchingCutFunc = "_cutDistanceAndAnglesVar";
+    if (mCutFunc == &MUONMatcher::matchCutMCHEta)
+      helper.MatchingCutFunc = "_cutMCHEta";
   }
 }
 
@@ -372,6 +374,7 @@ void MUONMatcher::runEventMatching()
   uint32_t GTrackID = 0;
   auto nMCHTracks = 0;
   auto nGlobalMuonTracksExt = 0;
+  clock_t start = clock();
   for (int event = 0; event < mNEvents; event++) {
     nMCHTracks += (int)mSortedGlobalMuonTracks[event].size();
     if (mVerbose)
@@ -385,14 +388,16 @@ void MUONMatcher::runEventMatching()
         for (auto mftTrack : mSortedMFTTracks[event]) {
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
           if (matchingCut(gTrack, mftTrack)) {
+	    if(gTrack.getEta()>-3.4){ //perfect
             gTrack.countCandidate();
-            if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID())
+            if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) //{ //Add{ perfect
               gTrack.setCloseMatch();
             auto chi2 = matchingEval(gTrack, mftTrack);
-            if (chi2 < gTrack.getMatchingChi2()) {
+            if (chi2 < gTrack.getMatchingChi2()) { //perfect
               gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[event][mftTrackID]);
               gTrack.setMatchingChi2(chi2);
-            }
+	      }
+	    }//Eta perfect
           }
           mftTrackID++;
         }
@@ -436,7 +441,9 @@ void MUONMatcher::runEventMatching()
     }   // end match save all
     nGlobalMuonTracksExt += (int)mSortedGlobalMuonTracksExt[event].size();
   } // /loop over events
-
+  clock_t end = clock();
+  const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC * 1000.0;
+  printf("Matching Time = %lf[ms]\n", time);
   if (!mMatchSaveAll) {
     std::cout << "Finished runEventMatching on " << nMCHTracks << " MCH Tracks on " << mNEvents << " events"
               << std::endl;
@@ -448,6 +455,327 @@ void MUONMatcher::runEventMatching()
   if (mTMVAReader)
     EvaluateML();
 }
+
+//_________________________________________________________________________________________________
+void MUONMatcher::runPythonMatching()
+{
+  TFile *predfile = new TFile("prediction.root", "read");
+  TTree* predictTree = (TTree*)predfile->Get("predTree");
+  // Runs matching over all tracks on a single event
+  std::cout << "Number of MCH Tracks = " << mMatchingHelper.nMCHTracks << std::endl;
+  std::cout << "Annotation: " << mMatchingHelper.Annotation() << std::endl;
+  std::cout << "Running runEventMatching for " << mNEvents << " events"
+            << std::endl;
+
+  uint32_t GTrackID = 0;
+  auto nMCHTracks = 0;
+  auto nGlobalMuonTracksExt = 0;
+  clock_t start = clock();
+
+  Long64_t EventID;
+  Long64_t lastEventID=0;
+  Int_t bestiEntry;
+  Long64_t MCHtrackID;
+  Long64_t MFTtrackID;
+  Long64_t truth;
+  Double_t prediction;
+  Double_t bestpred=0;
+  Long64_t lastMCHtrackID=2;
+  predictTree->SetBranchAddress("EventID",&EventID);
+  predictTree->SetBranchAddress("MCHtrackID",&MCHtrackID);
+  predictTree->SetBranchAddress("MFTtrackID",&MFTtrackID);
+  predictTree->SetBranchAddress("truth",&truth);
+  predictTree->SetBranchAddress("prediction",&prediction);
+
+  //predictTree->GetEntry(3);
+  //std::cout<<"iEntry = "<< 3 <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+  //std::cout<<"==========="<<endl;
+  int nEntry = predictTree->GetEntries();
+  int posicon=0;
+  int posiincon=0;
+  int negacon=0;
+  int negaincon=0;
+  int isclose=0;
+  int truthrank=1;
+  int closeiEntry =0;
+  Double_t closepred=0;
+  Double_t savedpred=0;
+  Double_t preddiff=0;
+  TH1F *posipredh = new TH1F("posipredh","truth = correct match;prediction;Counts",100,0,1);
+  TH1F *negapredh = new TH1F("negapredh","truth = wrong match;prediction;Counts",100,0,1);
+  TH1F *closepredh = new TH1F("closepredh","predicted probability of truth = correct match;predicted probability;Counts",100,0,1);
+  TH1F *savedpredh = new TH1F("savedpredh","predicted probability of saved MFT-MCH pair;predicted probability;Counts",100,0,1);
+  TH1F *preddiffh = new TH1F("preddiffh","difference of predicted probability between saved and truth = correct;predicted probability;Counts",100,0,1);
+      for(int iEntry=0;iEntry<nEntry;++iEntry){
+	//std::cout<<"================================================================================================================"<<endl;
+        predictTree->GetEntry(iEntry);
+	//std::cout<<"iEntry = "<< iEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	//std::cout<<"lastEventID = "<<lastEventID <<"lastMCHtrackID = "<<lastMCHtrackID<<" : bestpred = "<<bestpred<<endl;
+	if(prediction>0.5 && truth ==1){
+	  std::cout<<"!!!!!!!!!!!!!!!!!!!"<<endl;
+	  std::cout<<"posi consistent"<<endl;
+	  std::cout<<"iEntry = "<< iEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	  std::cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+	  posicon++;
+	  posipredh->Fill(prediction);
+	}
+	  if(prediction<0.5 && truth ==1){
+	    std::cout<<"!!!!!!!!!!!!!!!!!!!"<<endl;
+	    std::cout<<"posi inconsistent"<<endl;
+	    std::cout<<"iEntry = "<< iEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	    std::cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+	    posiincon++;
+	    posipredh->Fill(prediction);
+	  }
+	  if(prediction>0.5 && truth ==0){
+	    std::cout<<"!!!!!!!!!!!!!!!!!!!"<<endl;
+	    std::cout<<"nega inconsistent"<<endl;
+	    std::cout<<"iEntry = "<< iEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	    std::cout<<"^^^^^^^^^^^^^^^^^^^"<<endl;
+	    negaincon++;
+	    negapredh->Fill(prediction);
+	  }
+	  if(prediction<0.5 && truth==0){
+	    negacon++;
+	    negapredh->Fill(prediction);
+	  }
+    if(EventID==lastEventID){
+	    //std::cout<<"event-same loop"<<endl;
+      if(MCHtrackID==lastMCHtrackID){
+	           //std::cout<<"MCH-same loop"<<endl;
+	       int MFTIte=0;
+	       int MCHIte=0;
+            for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+              auto MCHlabel = mSortedMCHTrackLabels[EventID].getLabels(MCHIte);
+	             //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+	              if(MCHlabel[0].getTrackID()==MCHtrackID){
+		                //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+                    for (auto mftTrack : mSortedMFTTracks[EventID]) {
+                      auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[EventID][MFTIte]);
+		                  //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID() <<endl;
+		                      if(MFTlabel.getTrackID()==MFTtrackID){
+		                          //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID()<<endl;
+                              if(truth==1){
+                                gTrack.setCloseMatch();
+		                            std::cout<<"Set CloseMatch"<<endl;
+		                            isclose=1;
+		                            closeiEntry = iEntry;
+                              }
+                              if(prediction>bestpred){
+		                              std::cout<<"prediction(= "<<prediction<<" ) > bestpred(= "<<bestpred<<" )"<<endl;
+                                  bestpred=prediction;
+                                  bestiEntry=iEntry;
+		                              std::cout<<"update best iEntry"<<endl;
+		                              if(isclose==1){
+			                               std::cout<<"correct match was updated by wrong match"<<endl;
+			                               truthrank++;
+                                   }
+                              }//if(prediction>bestpred)
+		                       }//if(MFTlabel.getTrackID()==MCHtrackID)
+		                       MFTIte++;
+                     }//for (auto mftTrack : mSortedMFTTracks[EventID])
+	                }//if(MCHlabel[0].getTrackID()==MFTtrackID){
+	                    MCHIte++;
+             }//for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+        }//if(MCHtrackID=lastMCHtrackID)
+
+        if(!(MCHtrackID==lastMCHtrackID)){
+	      isclose=0;
+	      //std::cout<<"Not same-MCH loop"<<endl;
+	      //std::cout<<"save MFT-MCH pair"<<endl;
+	      //std::cout<<"best iEntry = "<<bestiEntry<<endl;
+	      predictTree->GetEntry(closeiEntry);
+	      std::cout<<"close info"<<endl;
+	      std::cout<<"rank of truth = "<<truthrank<<endl;
+	      std::cout<<"iEntry = "<< closeiEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	      closepred = prediction;
+	      closepredh->Fill(closepred);
+        predictTree->GetEntry(bestiEntry);
+	      int MFTIte=0;
+        int MCHIte=0;
+	      std::cout<<"saved track"<<endl;
+	      std::cout<<"iEntry = "<< bestiEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	      savedpred =prediction;
+	      savedpredh->Fill(savedpred);
+	      preddiff=savedpred - closepred;
+	      if(!(preddiff==0)){
+	      preddiffh->Fill(preddiff);
+	      }
+	      for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+            auto MCHlabel = mSortedMCHTrackLabels[EventID].getLabels(MCHIte);
+	          if(MCHlabel[0].getTrackID()==MCHtrackID){
+		          //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+              for (auto mftTrack : mSortedMFTTracks[EventID]) {
+                auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[EventID][MFTIte]);
+		            if(MFTlabel.getTrackID()==MFTtrackID){
+		               //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID()<<endl;
+		               gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[EventID][MFTIte]);
+                   gTrack.setMatchingChi2(prediction);
+                   //gTrack.setParametersMFT(mftTrack.getParameters());
+                   //gTrack.setCovariancesMFT(mftTrack.getCovariances());
+                   gTrack.setMCHTrackID(MCHtrackID);
+                   mSortedGlobalMuonTracksExt[EventID].push_back(gTrack);
+		               //std::cout<<"set best iEntry. From now, new MCHtrack."<<endl;
+		            }//if(MFTlabel.getTrackID()==MCHtrackID)
+		          MFTIte++;
+              }//for (auto mftTrack : mSortedMFTTracks[EventID]) {
+            }//if(MCHlabel[0].getTrackID()==MFTtrackID){
+	         MCHIte++;
+	      }//for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+	      predictTree->GetEntry(iEntry);
+	      bestpred=0.0;
+	      bestiEntry=iEntry;
+	      lastMCHtrackID=MCHtrackID;
+	      //std::cout<<"bestiEntry = "<<bestiEntry<<" : iEntry = "<<iEntry<<" : lastMCHtrackID = "<<lastMCHtrackID<<endl;
+        if(MCHtrackID==lastMCHtrackID){
+  	           //std::cout<<"MCH-same loop"<<endl;
+  	       int MFTIte=0;
+  	       int MCHIte=0;
+              for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+                auto MCHlabel = mSortedMCHTrackLabels[EventID].getLabels(MCHIte);
+  	             //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+  	              if(MCHlabel[0].getTrackID()==MCHtrackID){
+  		                //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+                      for (auto mftTrack : mSortedMFTTracks[EventID]) {
+                        auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[EventID][MFTIte]);
+  		                  //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID() <<endl;
+  		                      if(MFTlabel.getTrackID()==MFTtrackID){
+  		                          //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID()<<endl;
+                                if(truth==1){
+                                  gTrack.setCloseMatch();
+  		                            std::cout<<"Set CloseMatch"<<endl;
+  		                            isclose=1;
+  		                            closeiEntry = iEntry;
+                                }
+                                if(prediction>bestpred){
+  		                              std::cout<<"prediction(= "<<prediction<<" ) > bestpred(= "<<bestpred<<" )"<<endl;
+                                    bestpred=prediction;
+                                    bestiEntry=iEntry;
+  		                              std::cout<<"update best iEntry"<<endl;
+  		                              if(isclose==1){
+  			                               std::cout<<"correct match was updated by wrong match"<<endl;
+  			                               truthrank++;
+                                     }
+                                }//if(prediction>bestpred)
+  		                       }//if(MFTlabel.getTrackID()==MCHtrackID)
+  		                       MFTIte++;
+                       }//for (auto mftTrack : mSortedMFTTracks[EventID])
+  	                }//if(MCHlabel[0].getTrackID()==MFTtrackID){
+  	                    MCHIte++;
+               }//for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+          }//if(MCHtrackID=lastMCHtrackID)
+      }//if(!MCHtrackID=lastMCHtrackID)
+
+    }//if(EventID==lastEventID)
+
+
+    if(!(EventID==lastEventID)){
+	    isclose=0;
+	    predictTree->GetEntry(closeiEntry);
+	    std::cout<<"close info"<<endl;
+	    std::cout<<"rank of truth = "<<truthrank<<endl;
+	    std::cout<<"iEntry = "<< closeiEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	    closepred=prediction;
+      closepredh->Fill(closepred);
+	    //std::cout<<"Not same-event loop"<<endl;
+	    //std::cout<<"save MFT-MCH pair"<<endl;
+	    int MFTIte=0;
+      int MCHIte=0;
+	    predictTree->GetEntry(bestiEntry);
+	    std::cout<<"saved track"<<endl;
+	    std::cout<<"iEntry = "<< closeiEntry <<" / "<< nEntry <<" : EventID = "<<EventID<< " : MCHtrackID = "<<MCHtrackID<< " : MFTtrackID = "<< MFTtrackID << " : prediction = "<< prediction << " : truth = "<< truth <<endl;
+	    std::cout<<"================================================================================================================"<<endl;
+      savedpred=prediction;
+      savedpredh->Fill(savedpred);
+	    preddiff=savedpred-closepred;
+	    if(!(preddiff==0)){
+      preddiffh->Fill(preddiff);
+	    }
+	    for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+          auto MCHlabel = mSortedMCHTrackLabels[EventID].getLabels(MCHIte);
+	        if(MCHlabel[0].getTrackID()==MCHtrackID){
+		        //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+            for (auto mftTrack : mSortedMFTTracks[EventID]) {
+                auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[EventID][MFTIte]);
+		            if(MFTlabel.getTrackID()==MFTtrackID){
+		            //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID()<<endl;
+                gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[EventID][MFTIte]);
+                gTrack.setMatchingChi2(prediction);
+                //gTrack.setParametersMFT(mftTrack.getParameters());
+                //gTrack.setCovariancesMFT(mftTrack.getCovariances());
+                gTrack.setMCHTrackID(MCHtrackID);
+                mSortedGlobalMuonTracksExt[EventID].push_back(gTrack);
+		            //std::cout<<"set best iEntry. new Event and new MCHtrack"<<endl;
+		        }//if(MFTlabel.getTrackID()==MCHtrackID)
+		       MFTIte++;
+          }//for (auto mftTrack : mSortedMFTTracks[EventID])
+	      }//if(MCHlabel[0].getTrackID()==MFTtrackID){
+        MCHIte++;
+      }//for (auto& gTrack : mSortedGlobalMuonTracks[EventID])
+	    predictTree->GetEntry(iEntry);
+	    bestpred=0.0;
+	    bestiEntry=iEntry;
+	    lastEventID=EventID;
+	    lastMCHtrackID=MCHtrackID;
+      if(EventID==lastEventID){
+  	    //std::cout<<"event-same loop"<<endl;
+        if(MCHtrackID==lastMCHtrackID){
+  	           //std::cout<<"MCH-same loop"<<endl;
+  	       int MFTIte=0;
+  	       int MCHIte=0;
+              for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+                auto MCHlabel = mSortedMCHTrackLabels[EventID].getLabels(MCHIte);
+  	             //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+  	              if(MCHlabel[0].getTrackID()==MCHtrackID){
+  		                //std::cout<<"MCHlabel[0].getTrackID() = "<<MCHlabel[0].getTrackID()<< " : MCHlabel[0].getEventID() = "<<MCHlabel[0].getEventID() <<endl;
+                      for (auto mftTrack : mSortedMFTTracks[EventID]) {
+                        auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[EventID][MFTIte]);
+  		                  //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID() <<endl;
+  		                      if(MFTlabel.getTrackID()==MFTtrackID){
+  		                          //std::cout<<"MFTlabel.getTrackID() = "<<MFTlabel.getTrackID()<< " : MFTlabel.getEventID() = "<<MFTlabel.getEventID()<<endl;
+                                if(truth==1){
+                                  gTrack.setCloseMatch();
+  		                            std::cout<<"Set CloseMatch"<<endl;
+  		                            isclose=1;
+  		                            closeiEntry = iEntry;
+                                }
+                                if(prediction>bestpred){
+  		                              std::cout<<"prediction(= "<<prediction<<" ) > bestpred(= "<<bestpred<<" )"<<endl;
+                                    bestpred=prediction;
+                                    bestiEntry=iEntry;
+  		                              std::cout<<"update best iEntry"<<endl;
+  		                              if(isclose==1){
+  			                               std::cout<<"correct match was updated by wrong match"<<endl;
+  			                               truthrank++;
+                                     }
+                                }//if(prediction>bestpred)
+  		                       }//if(MFTlabel.getTrackID()==MCHtrackID)
+  		                       MFTIte++;
+                       }//for (auto mftTrack : mSortedMFTTracks[EventID])
+  	                }//if(MCHlabel[0].getTrackID()==MFTtrackID){
+  	                    MCHIte++;
+               }//for (auto& gTrack : mSortedGlobalMuonTracks[EventID]) {
+          }//if(MCHtrackID=lastMCHtrackID)
+        }//if(EventID==lastEventID){
+  }//if(!(EventID==lastEventID))
+    //std::cout<<"================================================================================================================"<<endl;
+  }//for(int iEntry=0;iEntry<nEntry;++iEntry)
+  std::cout<<"posicon = "<<posicon<<" : posiincon = "<<posiincon<<" : negacon = "<<negacon<<" : negaincon = "<<negaincon<<endl;
+  clock_t end = clock();
+  const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC * 1000.0;
+  printf("Matching Time = %lf[ms]\n", time);
+  std::cout << "Finished runEventIDMatching" << std::endl;
+  TFile *fout = new TFile("EvalPythonMatching.root", "recreate");
+  fout->cd();
+  posipredh->Write();
+  negapredh->Write();
+  closepredh->Write();
+  savedpredh->Write();
+  preddiffh->Write();
+  fout->Close();
+  finalize();
+}
+
 
 //_________________________________________________________________________________________________
 void MUONMatcher::MLClassification(std::string input_name, std::string trainingfile,
@@ -1173,7 +1501,8 @@ bool MUONMatcher::matchCutDistance(const MCHTrackConv& mchTrack,
   auto dx = mchTrack.getX() - mftTrack.getX();
   auto dy = mchTrack.getY() - mftTrack.getY();
   auto distance = TMath::Sqrt(dx * dx + dy * dy);
-  return distance < mCutParams[0];
+  auto mchTrack_Eta = mchTrack.getEta();
+  return (distance < mCutParams[0]) and (mchTrack_Eta > -3.4);
 }
 
 //_________________________________________________________________________________________________
@@ -1290,6 +1619,18 @@ bool MUONMatcher::matchCutVarXYAngles(const MCHTrackConv& mchTrack,
   auto cutPhi = 3 * 1.15 * TMath::Sqrt(mchTrack.getSigma2Phi());
   auto cutTanl = 3 * 1.22 * TMath::Sqrt(mchTrack.getSigma2Tanl());
   return (distance < cutDistance) and (dPhi < cutPhi) and (dTheta < cutTanl);
+}
+
+//_________________________________________________________________________________________________
+bool MUONMatcher::matchCutMCHEta(const MCHTrackConv& mchTrack,
+                                   const MFTTrack& mftTrack)
+{
+
+  if (mChargeCutEnabled && (mchTrack.getCharge() != mftTrack.getCharge()))
+    return false;
+
+  auto mchTrack_Eta = mchTrack.getEta();
+  return mchTrack_Eta > mCutParams[0];
 }
 
 //_________________________________________________________________________________________________
@@ -1551,8 +1892,8 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
 {
 
   const auto& mftTrack = mMFTTracks[gTrack.getBestMFTTrackMatchID()];
-    
-  
+
+
   /*
   if(mMatchingPlaneZ<-90.0){
     MFTTrack new_mftTrack = MFTTrack();
@@ -1589,13 +1930,13 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     gTrack.setTanl(x3);
     gTrack.setInvQPt(x4);
     gTrack.setCharge(mchTrack->getCharge());
-  
-    
+
+
     new_mftTrack.setParameters(mftTrack.getOutParam().getParameters());
     new_mftTrack.setCovariances(mftTrack.getOutParam().getCovariances());
     new_mftTrack.setZ(mftTrack.getOutParam().getZ());
     new_mftTrack.propagateToZhelix(0, mField_z);
-    
+
     new_mftTrack.setNumberOfPoints(mftTrack.getNumberOfPoints());
     new_mftTrack.setExternalClusterIndexOffset(mftTrack.getExternalClusterIndexOffset());
 
@@ -1603,7 +1944,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     auto offset = new_mftTrack.getExternalClusterIndexOffset();
     auto invQPt0 = gTrack.getInvQPt();
     auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
-  
+
     // initialize the starting track parameters and cluster
     auto nPoints = new_mftTrack.getNumberOfPoints();
     auto k = TMath::Abs(o2::constants::math::B2C * mField_z);
@@ -1626,7 +1967,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     gTrack.setPhi(new_mftTrack.getPhi());
     gTrack.setTanl(new_mftTrack.getTanl());
     gTrack.setInvQPt(gTrack.getInvQPt());
-  
+
     if (mVerbose) {
 
       std::cout << "  MFTTrack: X = " << new_mftTrack.getX()
@@ -1640,7 +1981,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     SMatrix55Sym lastParamCov;
     Double_t tanlsigma = TMath::Max(std::abs(new_mftTrack.getTanl()), .5);
     Double_t qptsigma = TMath::Max(std::abs(new_mftTrack.getInvQPt()), .5);
-    
+
     lastParamCov(0, 0) = 10000. * new_mftTrack.getCovariances()(0, 0); // <X,X>
     lastParamCov(1, 1) = 10000. * new_mftTrack.getCovariances()(1, 1); // <Y,X>
     lastParamCov(2, 2) = 10000. * new_mftTrack.getCovariances()(2, 2); // TMath::Pi() * TMath::Pi() / 16 // <PHI,X>
@@ -1648,12 +1989,12 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);            //100. * qptsigma * qptsigma;  // <INVQPT,X>
 
     gTrack.setCovariances(lastParamCov);
-  
+
     for (int icls = ncls - 1; icls > -1; --icls) {
       auto clsEntry = mtrackExtClsIDs[offset + icls];
       auto& thiscluster = mMFTClusters[clsEntry];
       computeCluster(gTrack, thiscluster);
-    } 
+    }
   }
   else{
   */
@@ -1661,7 +2002,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     auto offset = mftTrack.getExternalClusterIndexOffset();
     auto invQPt0 = gTrack.getInvQPt();
     auto sigmainvQPtsq = gTrack.getCovariances()(4, 4);
-  
+
     // initialize the starting track parameters and cluster
     auto nPoints = mftTrack.getNumberOfPoints();
     auto k = TMath::Abs(o2::constants::math::B2C * mField_z);
@@ -1684,7 +2025,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     gTrack.setPhi(mftTrack.getPhi());
     gTrack.setTanl(mftTrack.getTanl());
     gTrack.setInvQPt(gTrack.getInvQPt());
-  
+
     if (mVerbose) {
 
       std::cout << "  MFTTrack: X = " << mftTrack.getX()
@@ -1706,7 +2047,7 @@ void MUONMatcher::fitGlobalMuonTrack(GlobalMuonTrack& gTrack)
     lastParamCov(4, 4) = gTrack.getCovariances()(4, 4);            //100. * qptsigma * qptsigma;  // <INVQPT,X>
 
     gTrack.setCovariances(lastParamCov);
-  
+
     for (int icls = ncls - 1; icls > -1; --icls) {
       auto clsEntry = mtrackExtClsIDs[offset + icls];
       auto& thiscluster = mMFTClusters[clsEntry];
@@ -2020,7 +2361,7 @@ double MUONMatcher::matchHiroshima(const GlobalMuonTrack& mchTrack,
 
   //Multiple Scattering(=MS)
 
-  auto pMCH = mchTrack.getP();
+  auto pMCH = sqrt(1.0+mchTrack.getTanl()*mchTrack.getTanl())/abs(mchTrack.getInvQPt());
   auto lorentzbeta = pMCH / TMath::Sqrt(mumass * mumass + pMCH * pMCH);
   auto zMS = copysign(1.0, mchTrack.getCharge());
   auto thetaMS = 13.6 / (1000.0 * pMCH * lorentzbeta * 1.0) * zMS * TMath::Sqrt(60.0 * l / LAbs) * (1.0 + 0.038 * TMath::Log(60.0 * l / LAbs));
@@ -2280,38 +2621,171 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
   std::cout << " Exporting training data to TTree. Pairing MFT tracks with " << nMCHTracks << " MCH Tracks" << std::endl;
 
   Int_t Truth, track_IDs, nCorrectPairs = 0, nFakesPairs = 0;
+  Int_t EventID, MFTtrackID, MCHtrackID;
   Int_t pairID = 0;
+  Float_t MFT_X_Z0, MFT_Y_Z0;
+  Float_t trkOutZ;
+
   TTree* matchTree = new TTree("matchTree", "MatchTree");
   for (std::size_t nFeature = 0; nFeature < mNInputFeatures; nFeature++) {
     matchTree->Branch(mMLInputFeaturesName[nFeature].c_str(), &mMLInputFeatures[nFeature], Form("%s/F", mMLInputFeaturesName[nFeature].c_str()));
   }
 
   matchTree->Branch("Truth", &Truth, "Truth/I");
+  matchTree->Branch("EventID", &EventID, "EventID/I");
+  matchTree->Branch("MFTtrackID", &MFTtrackID, "MFTtrackID/I");
+  matchTree->Branch("MCHtrackID", &MCHtrackID, "MCHtrackID/I");
+  matchTree->Branch("MFT_X_Z0",&MFT_X_Z0,"MFT_X_Z0/F");
+  matchTree->Branch("MFT_Y_Z0",&MFT_Y_Z0,"MFT_Y_Z0/F");
+  matchTree->Branch("trkOutZ",&trkOutZ,"trkOutZ/F");
 
   auto event = 0;
   while (nMCHTracks > 0 or event < mNEvents) {
-    for (auto& mchTracks : mSortedGlobalMuonTracks) {
+    //for (auto& mchTracks : mSortedGlobalMuonTracks) {
+    /*
       if (mVerbose) {
         std::cout << " Event #" << event << std::endl;
         std::cout << "  MCHTracks in this event = " << mSortedGlobalMuonTracks[event].size() << std::endl;
         std::cout << "  nMFTTracks = " << mSortedMFTTracks[event].size() << std::endl;
       }
+    */
       auto MCHTrackID = 0;
-      for (auto& mchTrack : mchTracks) {
+      std::cout << "Exporting event # " << event << ": " << mSortedGlobalMuonTracks[event].size() << " MCH Tracks" << std::endl;
+      for (auto& mchTrack : mSortedGlobalMuonTracks[event]) {
         if (!nMCHTracks)
           continue;
         auto MCHlabel = mSortedMCHTrackLabels[event].getLabels(MCHTrackID);
+	//std::cout<<"MCHtrack ID = "<<MCHlabel[0].getTrackID()<<endl;
+	/*
         if (mVerbose) {
           std::cout << "  MCHTrack #" << MCHTrackID << " (" << nMCHTracks << " left)" << std::endl;
         }
+	*/
         auto mftTrackID = 0;
         for (auto mftTrack : mSortedMFTTracks[event]) {
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
+	  //std::cout<<"MFTtrack ID = "<<MFTlabel.getTrackID()<<endl;
           Truth = (int)(MFTlabel.getTrackID() == MCHlabel[0].getTrackID());
-          
+	  EventID = MCHlabel[0].getEventID();
+	  MFTtrackID = MFTlabel.getTrackID();
+	  MCHtrackID = MCHlabel[0].getTrackID();
+
+	  /*
+	  // Match two tracks evaluating all parameters: X,Y, phi, tanl & q/pt
+
+	  SMatrix55Sym I = ROOT::Math::SMatrixIdentity(), H_k, V_k;
+	  SVector5 m_k(mftTrack.getX(), mftTrack.getY(), mftTrack.getPhi(),
+		       mftTrack.getTanl(), mftTrack.getInvQPt()),
+	    r_k_kminus1;
+	  SMatrix5 GlobalMuonTrackParameters = mchTrack.getParameters();
+	  SMatrix55Sym GlobalMuonTrackCovariances = mchTrack.getCovariances();
+	  V_k(0, 0) = mftTrack.getCovariances()(0, 0);
+	  V_k(1, 1) = mftTrack.getCovariances()(1, 1);
+	  V_k(2, 2) = mftTrack.getCovariances()(2, 2);
+	  V_k(3, 3) = mftTrack.getCovariances()(3, 3);
+	  V_k(4, 4) = mftTrack.getCovariances()(4, 4);
+	  H_k(0, 0) = 1.0;
+	  H_k(1, 1) = 1.0;
+	  H_k(2, 2) = 1.0;
+	  H_k(3, 3) = 1.0;
+	  H_k(4, 4) = 1.0;
+
+	  // Covariance of residuals
+  SMatrix55Std invResCov =
+    (V_k + ROOT::Math::Similarity(H_k, GlobalMuonTrackCovariances));
+  invResCov.Invert();
+
+  // Kalman Gain Matrix
+  SMatrix55Std K_k =
+    GlobalMuonTrackCovariances * ROOT::Math::Transpose(H_k) * invResCov;
+
+  // Update Parameters
+  r_k_kminus1 =
+    m_k - H_k * GlobalMuonTrackParameters; // Residuals of prediction
+  // GlobalMuonTrackParameters = GlobalMuonTrackParameters + K_k * r_k_kminus1;
+
+  // Update covariances Matrix
+  // SMatrix55Std updatedCov = (I - K_k * H_k) * GlobalMuonTrackCovariances;
+
+  auto matchChi2Track = ROOT::Math::Similarity(r_k_kminus1, invResCov);
+	  */
+	  //Hiroshima's Matching function
+
+	  //Matching constants
+	  Double_t LAbs = 415.;    //Absorber Length[cm]
+	  Double_t mumass = 0.106; //mass of muon [GeV/c^2]
+	  Double_t l;              //the length that extrapolated MCHtrack passes through absorber
+
+	  //std::cout<<"MatchingPlaneZ = "<<mMatchingPlaneZ<<endl;
+
+	  if (mMatchingPlaneZ >= -90.0) {
+	    l = LAbs;
+	  } else {
+	    l = 505.0 + mMatchingPlaneZ;
+	  }
+
+	  //defference between MFTtrack and MCHtrack
+
+	  auto dx = mftTrack.getX() - mchTrack.getX();
+	  auto dy = mftTrack.getY() - mchTrack.getY();
+	  auto dthetax = TMath::ATan(mftTrack.getPx() / TMath::Abs(mftTrack.getPz())) - TMath::ATan(mchTrack.getPx() / TMath::Abs(mchTrack.getPz()));
+	  auto dthetay = TMath::ATan(mftTrack.getPy() / TMath::Abs(mftTrack.getPz())) - TMath::ATan(mchTrack.getPy() / TMath::Abs(mchTrack.getPz()));
+
+	  //Multiple Scattering(=MS)
+
+	  auto pMCH = sqrt(1.0+mchTrack.getTanl()*mchTrack.getTanl())/abs(mchTrack.getInvQPt());
+	  auto lorentzbeta = pMCH / TMath::Sqrt(mumass * mumass + pMCH * pMCH);
+	  auto zMS = copysign(1.0, mchTrack.getCharge());
+	  auto thetaMS = 13.6 / (1000.0 * pMCH * lorentzbeta * 1.0) * zMS * TMath::Sqrt(60.0 * l / LAbs) * (1.0 + 0.038 * TMath::Log(60.0 * l / LAbs));
+	  auto xMS = thetaMS * l / TMath::Sqrt(3.0);
+
+	  //normalize by theoritical Multiple Coulomb Scattering width to be momentum-independent
+	  //make the dx and dtheta dimensionless
+
+	  auto dxnorm = dx / xMS;
+	  auto dynorm = dy / xMS;
+	  auto dthetaxnorm = dthetax / thetaMS;
+	  auto dthetaynorm = dthetay / thetaMS;
+
+	  //rotate distribution
+
+	  auto dxrot = dxnorm * TMath::Cos(TMath::Pi() / 4.0) - dthetaxnorm * TMath::Sin(TMath::Pi() / 4.0);
+	  auto dthetaxrot = dxnorm * TMath::Sin(TMath::Pi() / 4.0) + dthetaxnorm * TMath::Cos(TMath::Pi() / 4.0);
+	  auto dyrot = dynorm * TMath::Cos(TMath::Pi() / 4.0) - dthetaynorm * TMath::Sin(TMath::Pi() / 4.0);
+	  auto dthetayrot = dynorm * TMath::Sin(TMath::Pi() / 4.0) + dthetaynorm * TMath::Cos(TMath::Pi() / 4.0);
+
+	  //convert ellipse to circle
+
+	  auto k = 0.7; //need to optimize!!
+	  auto dxcircle = dxrot;
+	  auto dycircle = dyrot;
+	  auto dthetaxcircle = dthetaxrot / k;
+	  auto dthetaycircle = dthetayrot / k;
+
+	  //score
+
+	  auto scoreX = TMath::Sqrt(dxcircle * dxcircle + dthetaxcircle * dthetaxcircle);
+	  auto scoreY = TMath::Sqrt(dycircle * dycircle + dthetaycircle * dthetaycircle);
+	  auto score = TMath::Sqrt(scoreX * scoreX + scoreY * scoreY);
+	  //std::cout<<"dx = "<<dx<<" dy = "<<dy<<" dthetax = "<<dthetax<<" dthetay = "<<dthetay<<" pMCH = "<<pMCH<<" lorentzbeta = "<<lorentzbeta<<" zMS = "<<zMS<<" thetaMS = "<<thetaMS<<" xMS = "<<xMS<<" dxnorm = "<<dxnorm<<" dynorm = "<<dynorm<<" dthetaxnorm = "<<dthetaxnorm<<" dthetaynorm = "<<dthetaynorm<<" dxrot = "<<dxrot<<" dthetaxrot = "<<dthetaxrot<<" dyrot = "<<dyrot<<" dthetayrot = "<<dthetayrot<<" k = "<<k<<" dxcircle = "<<dxcircle<<" dycircle = "<<dycircle<<" dthetaxcircle = "<<dthetaxcircle<<" dthetaycircle = "<<dthetaycircle<<endl;
+	  //std::cout<<"scoreX = "<<scoreX<<" scoreY = "<<scoreY<<endl;
+	  //std::cout<<"Hiroshima Score = "<<score<<endl;
+
+          mchTrack.setMatchingChi2(score);
+	  
+	  mftTrack.propagateToZhelix(0., mField_z);
+	  MFT_X_Z0 = mftTrack.getX();
+	  MFT_Y_Z0 = mftTrack.getY();
+	  auto outParam = mftTrack.getOutParam();
+	  trkOutZ = outParam.getZ();
+	  mftTrack.propagateToZhelix(mMatchingPlaneZ, mField_z);
+	  //std::cout<<"MFT track X = "<<mftTrack.getX()<<"MFT OutParam Z = "<<outParam.getZ()<<endl;
+	  
+	  //std::cout<<"MFT_X = "<<mftTrack.getX()<<" MCH_X = "<<mchTrack.getX()<<endl;
+	  //std::cout<<"Matching Score = "<<matchChi2Track<<endl;
 	  if ((mCorrectMatchIgnoreCut && Truth) || matchingCut(mchTrack, mftTrack)) {
 	    if( (Truth == 1) || ( Truth==0 && gRandom->Rndm() < 1 )){
-	      setMLFeatures(mchTrack, mftTrack);	    
+	      setMLFeatures(mchTrack, mftTrack);
 	      Truth ? nCorrectPairs++ : nFakesPairs++;
 	      pairID++;
 	      matchTree->Fill();
@@ -2323,8 +2797,9 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
         MCHTrackID++;
       }
       event++;
-    }
+      //}
   }
+  std::cout << "Annotation: " << mMatchingHelper.Annotation() << std::endl;
 
   fT->Write();
   auto nPairs = nCorrectPairs + nFakesPairs;
@@ -2339,7 +2814,7 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
 //_________________________________________________________________________________________________
 void MUONMatcher::runONNXRuntime()
 {
-  
+
   std::cout<<"ONNXRUntime is running....."<<endl;
 
   std::string model_file = "";
@@ -2368,7 +2843,7 @@ void MUONMatcher::runONNXRuntime()
 
   // Assume model has 1 input node and 1 output node.
   //assert(input_names.size() == 1 && output_names.size() == 1);
-  
+
   // Runs matching over all tracks on a single event
   std::cout << "Number of MCH Tracks = " << mMatchingHelper.nMCHTracks << std::endl;
   std::cout << "Annotation: " << mMatchingHelper.Annotation() << std::endl;
@@ -2378,6 +2853,7 @@ void MUONMatcher::runONNXRuntime()
   uint32_t GTrackID = 0;
   auto nMCHTracks = 0;
   auto nGlobalMuonTracksExt = 0;
+  clock_t start = clock();
   for (int event = 0; event < mNEvents; event++) {
 
     nMCHTracks += (int)mSortedGlobalMuonTracks[event].size();
@@ -2391,10 +2867,11 @@ void MUONMatcher::runONNXRuntime()
 	gTrack.setMatchingChi2(-999);
           auto mftTrackID = 0;
           for (auto mftTrack : mSortedMFTTracks[event]) {
-            
+
 	    auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
-            
+
 	    if (matchingCut(gTrack, mftTrack)) {
+	      //if(gTrack.getEta()>-3.4){
 
 	      gTrack.countCandidate();
 
@@ -2408,15 +2885,26 @@ void MUONMatcher::runONNXRuntime()
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
 
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
-	      
+
 	      Float_t prob = -999;
-	      
+
 	      if(model_file.find("lightGBM") != std::string::npos){
 		const float* output_value = output_tensors[1].GetTensorData<float>();
-		if( output_value[0] <  output_value[1])
+		if( 0.5 <  output_value[1]){
+		//if(0.0 < output_value[1]/(output_value[1]+(1.0-output_value[1])/0.00622732)){
+		//if(output_value[0]<output_value[1]){
+		  //prob = output_value[1]/(output_value[1]+(1.0-output_value[1])/0.00622732);
 		  prob = output_value[1];
+		}
 	      }
-	      
+
+	      else if(model_file.find("XGBoost") != std::string::npos){
+		const float* output_value = output_tensors[1].GetTensorData<float>();
+		if(0.5 < output_value[1]){
+		  prob = output_value[1];
+		}
+	      }
+
 	      else if(model_file.find("tfNN") != std::string::npos){
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
@@ -2426,7 +2914,7 @@ void MUONMatcher::runONNXRuntime()
 		gTrack.setBestMFTTrackMatchID(mftTrackLabelsIDx[event][mftTrackID]);
 		gTrack.setMatchingChi2(prob);
 	      }
-
+	      //}//Eta
             }
             mftTrackID++;
           }
@@ -2473,9 +2961,9 @@ void MUONMatcher::runONNXRuntime()
 	      std::vector<Ort::Value> output_tensors = session.Run(input_names, input_tensors, output_names);
 
 	      //assert(output_tensors.size() == session.GetOutputNames().size() && output_tensors[0].IsTensor());
-	      
+
 	      //cout<<"HHHHH         "<<output_tensors.size()<<"   "<<session.GetOutputNames().size()<<endl;
-	      
+
 	      const int* output_label = output_tensors[0].GetTensorData<int>();
 
 	      Float_t prob = -999;
@@ -2485,13 +2973,18 @@ void MUONMatcher::runONNXRuntime()
 		prob = output_value[1];
 	      }
 
+	      else if(model_file.find("XGBoost") != std::string::npos){
+		const float*output_value = output_tensors[1].GetTensorData<float>();
+		prob = output_value[1];
+	      }
+
 	      else if(model_file.find("tfNN") != std::string::npos){
 		const float* output_value = output_tensors[0].GetTensorData<float>();
 		prob = output_value[0];
 	      }
-	      
+
 	      gTrack.setMatchingChi2(prob);
-	      
+
 	      mSortedGlobalMuonTracksExt[event].push_back(gTrack);
             } // matching cut
           }   // end event match, MFT
@@ -2502,7 +2995,10 @@ void MUONMatcher::runONNXRuntime()
     }   // end match save all
     nGlobalMuonTracksExt += (int)mSortedGlobalMuonTracksExt[event].size();
   }     // /loop over events
+  clock_t end = clock();
 
+  const double time = static_cast<double>(end - start) / CLOCKS_PER_SEC * 1000.0;
+  printf("Matching Time = %lf[ms]\n", time);
   if (!mMatchSaveAll) {
     std::cout << "Finished runEventMatching on " << nMCHTracks << " MCH Tracks on " << mNEvents << " events"
               << std::endl;
@@ -2576,10 +3072,10 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t MCH_Cov24  = mchTrack.getCovariances()(2, 4);
   Float_t MCH_Cov34  = mchTrack.getCovariances()(3, 4);
   Float_t MCH_Cov44  = mchTrack.getCovariances()(4, 4);
-	      
+
   Float_t MFT_TrackChi2   = mftTrack.getTrackChi2();
   Float_t MFT_NClust      = mftTrack.getNumberOfPoints();
-	      
+
   Float_t Delta_X      = MCH_X      - MFT_X;
   Float_t Delta_Y      = MCH_Y      - MFT_Y;
   Float_t Delta_XY     = sqrt(pow(MCH_X-MFT_X,2) + pow(MCH_Y-MFT_Y,2));
@@ -2607,9 +3103,9 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
   Float_t Ratio_P      = MCH_P      / MFT_P ;
   Float_t Ratio_Ch     = MCH_Ch     / MFT_Ch;
 
-  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;	      
+  Float_t MFT_TrackReducedChi2 = MFT_TrackChi2/MFT_NClust;
   Float_t MatchingScore = matchingEval(mchTrack, mftTrack);
-  
+
   std::vector<float> input_tensor_values{
       MFT_InvQPt,
       MFT_X,
@@ -2627,14 +3123,29 @@ std::vector<float> MUONMatcher::getTrainingVariables(const MCHTrackConv& mchTrac
       MFT_NClust,
       MFT_TrackReducedChi2,
 
+      MatchingScore,
+
       Delta_InvQPt,
       Delta_X,
       Delta_Y,
       Delta_XY,
       Delta_Phi,
       Delta_Tanl,
+      Delta_Ch,
+	/*
+      MFT_Pt,
+      MCH_Pt,
+      Delta_Pt,
+      Ratio_Pt,
+	*/
+      Ratio_InvQPt,
+      Ratio_X,
+      Ratio_Y,
+      Ratio_Phi,
+      Ratio_Tanl,
 
-      Delta_Ch
+      Ratio_Ch
+
   };
 
 

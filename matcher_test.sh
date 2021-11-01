@@ -10,6 +10,7 @@ Usage()
 }
 
 updatecode() {
+echo "updatecode"
   cp -r ${SCRIPTDIR}/generators/* ${SCRIPTDIR}/*.bin ${SCRIPTDIR}/*.xml ${SCRIPTDIR}/include ${SCRIPTDIR}/*.C ${SCRIPTDIR}/*.h ${SCRIPTDIR}/*.cxx ${SCRIPTDIR}/*.py ${SCRIPTDIR}/macrohelpers ${OUTDIR}
 }
 
@@ -27,10 +28,10 @@ generateMCHTracks()
   #echo ${MCHGENERATOR}_${NPIONS}pi_${NMUONS}mu_${NEV_}evts  > GENCFG
 
   ## 1) aliroot generation of MCH Tracks
-  export SEED=${SEED:-"123456"}
-  echo ${NEV_} > nMCHEvents
-  export NEV=${NEV_}
-  rm -rf MatcherGenConfig.txt
+  #export SEED=${SEED:-"123456"}
+  #echo ${NEV_} > nMCHEvents
+  #export NEV=${NEV_}
+  #rm -rf MatcherGenConfig.txt
   #bash ./runtest.sh -n ${NEV_} | tee aliroot_MCHgen.log
 
   ## 2) aliroot conversion of MCH tracks to temporary format
@@ -86,7 +87,7 @@ runMatching()
     pushd ${OUTDIR}
     echo "Matching MCH & MFT Tracks on `pwd` ..."
     ## MFT MCH track matching & global muon track fitting:
-    root -e "gSystem->Load(\"libO2MCHTracking\")"  -e "gSystem->Load(\"$ONNX_PATH\")" -l -q -b runMatching.C+ | tee matching.log
+    root -e 'gSystem->Load("libO2MCHTracking")'  -e 'gSystem->Load("$ONNX_PATH")' -l -q -b runMatching.C+ | tee matching.log
     RESULTSDIR="Results`cat MatchingConfig.txt`"
     mkdir -p ${RESULTSDIR}
     cp ${MATCHINGRESULTS} "${RESULTSDIR}"
@@ -119,7 +120,7 @@ exportMLTrainningData()
     pushd ${OUTDIR}
     echo "Exporting ML Traning data file on `pwd` ..."
     ## MFT MCH track matching & global muon track fitting:
-    root -e 'gSystem->Load("libO2MCHTracking")'  -e "gSystem->Load(\"$ONNX_PATH\")" -l -q -b runMatching.C+ | tee training_data_gen.log
+    root -e 'gSystem->Load("libO2MCHTracking")'  -e 'gSystem->Load("$ONNX_PATH")' -l -q -b runMatching.C+ | tee training_data_gen.log
     RESULTSDIR="MLTraining`cat MatchingConfig.txt`"
     mkdir -p ${RESULTSDIR}
     cp training_data_gen.log MLTraining_*.root "${RESULTSDIR}"
@@ -155,9 +156,10 @@ trainML()
       pushd ${OUTDIR}
 
       if ! [ -z ${ML_PYTHON+x} ]; then
-	      python3 python_training.py | tee MLtraining.log
+	  python3 python_training.py | tee MLtraining.log
+	  #python3 python_predicting.py | tee MLpredicting.log
       else
-	      root -e 'gSystem->Load("libO2MCHTracking")'  -e "gSystem->Load(\"$ONNX_PATH\")" -l -q -b runMatching.C+ | tee MLtraining.log
+	      root -e 'gSystem->Load("libO2MCHTracking")'  -e 'gSystem->Load("$ONNX_PATH")' -l -q -b runMatching.C+ | tee MLtraining.log
       fi
   fi
 
@@ -184,8 +186,8 @@ runChecks()
   echo "Checking global muon tracks on `pwd` ..." && \
 
   ## Check global muon Tracks
-  #root -l -q -b GlobalMuonChecks.C+ | tee checks.log
-  root -l -q -b CheckThePerformance.C+ | tee performance.log
+  root -l -q -b GlobalMuonChecks.C+ | tee checks.log
+  #root -l -q -b CheckThePerformance.C+ | tee performance.log
   RESULTSDIR="Results`cat MatchingConfig.txt`"
   cp ${MATCHINGRESULTS} ${CHECKRESULTS} "${RESULTSDIR}"
   echo " Results moved to `realpath ${RESULTSDIR}`"
@@ -413,10 +415,10 @@ CUSTOM_SHM="--shm-segment-size 5000000000"
 
 export MCHGENERATOR=${GENERATOR}
 export ALIROOT_OCDB_ROOT=${ALIROOT_OCDB_ROOT:-$HOME/alice/OCDB}
-export ONNX_PATH=`locate libonnxruntime.so.1.7.2 | grep local1 | grep alice1`
+export ONNX_PATH=/home/ejima/alice/sw/slc7_x86-64/ONNXRuntime/v1.7.2-alice1-local1/lib64/libonnxruntime.so.1.7.2
 
 ALIROOTENV=${ALIROOTENV:-"AliRoot/latest-master-next-root6"}
-O2ENV=${O2ENV:-"O2/latest-dev-o2"}
+O2ENV=${O2ENV:-"O2/latest"}
 #O2ENV=${O2ENV:-"O2/latest-f754608ed4-o2"}
 
 

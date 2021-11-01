@@ -45,6 +45,7 @@ bool EXPORT_HISTOS_IMAGES = false;
 
 //_________________________________________________________________________________________________
 int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
+		     const std::string perfecttrkFile = "perfectGlobalMuonTracks.root",
                      const std::string o2sim_KineFile = "o2sim_Kine.root")
 {
 
@@ -475,6 +476,83 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TEfficiency* closeMatchEff = new TEfficiency(
     "Close_Match_Eff", "Close Matches;p_t [GeV];#epsilon", 20, 0, 10);
 
+  //GM pT distribution
+  TH1F *allPt = new TH1F("allPt","all GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt = new TH1F("pairablePt","pairable GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *correctPt = new TH1F("correctPt","Correct Matched GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *fakePt = new TH1F("fakePt","Fake Matched GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *danglingPt = new TH1F("danglingPt","Dangling GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *recoGMPt = new TH1F("recoGMPt","Reconstructed GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  //perfect GM pT distribution
+  TH1F *allPt_perfect = new TH1F("allPt_Perfect","all perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt_perfect = new TH1F("pairablePt_Perfect","pairable perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt_perfect_reco = new TH1F("pairablePt_Perfect_reco","pairable perfect GMtrack in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt_perfect_replace = new TH1F("pairablePt_Perfect_replace","replaced pairable perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *correctPt_perfect = new TH1F("correctPt_Perfect","Correct Matched perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *fakePt_perfect = new TH1F("fakePt_Perfect","Fake Matched perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *danglingPt_perfect = new TH1F("danglingPt_Perfect","Dangling perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *recoGMPt_perfect = new TH1F("recoGMPt_Perfect","Reconstructed perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  //MC pT distribution
+  TH1F *allPt_MC = new TH1F("allPt_MC","all MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt_MC = new TH1F("pairablePt_MC","pairable MCtracks pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *pairablePt_MC_reco = new TH1F("pairablePt_MC_reco","pairable MCtracks in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *correctPt_MC = new TH1F("correctPt_MC","Correct Matched MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *fakePt_MC = new TH1F("fakePt_MC","Fake Matched MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *danglingPt_MC = new TH1F("danglingPt_MC","Dangling MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *recoGMPt_MC = new TH1F("recoGMPt_MC","Reconstructed MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  //GM pT-Eta 2D histograms
+  TH2F *allPtEta = new TH2F("allPtEta","all GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *pairablePtEta = new TH2F("pairablePtEta","pairable reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notPairablePtEta = new TH2F("notPairablePtEta","Not pairable reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *correctPtEta = new TH2F("correctPtEta","Correct Matched GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *fakePtEta = new TH2F("fakePtEta","Fake Matched GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *danglingPtEta = new TH2F("danglingPtEta","Dangling GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *recoGMPtEta = new TH2F("recoGMPtEta","Reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  //perfect GM pT-Eta 2D histograms
+  TH2F *allPtEta_perfect = new TH2F("allPtEta_perfect","all perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *pairablePtEta_perfect = new TH2F("pairablePtEta_perfect","pairable perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *pairablePtEta_perfect_reco = new TH2F("pairablePtEta_perfect_reco","pairable perfect GMtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notPairablePtEta_perfect = new TH2F("notPairablePtEta_perfect","Not pairable perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *correctPtEta_perfect = new TH2F("correctPtEta_perfect","Correct Matched perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *fakePtEta_perfect = new TH2F("fakePtEta_perfect","Fake Matched perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *danglingPtEta_perfect = new TH2F("danglingPtEta_perfect","Dangling perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *recoGMPtEta_perfect = new TH2F("recoGMPtEta_perfect","Reconstructed perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  //MC pT-Eta 2D histograms
+  TH2F *allPtEta_MC = new TH2F("allPtEta_MC","all MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *pairablePtEta_MC = new TH2F("pairablePtEta_MC","pairable MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *pairablePtEta_MC_reco = new TH2F("pairablePtEta_MC_reco","pairable MCtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notPairablePtEta_MC = new TH2F("notPairablePtEta_MC","Not pairable MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *correctPtEta_MC = new TH2F("correctPtEta_MC","Correct Matched MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *fakePtEta_MC = new TH2F("fakePtEta_MC","Fake Matched MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *danglingPtEta_MC = new TH2F("danglingPtEta_MC","Dangling MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *recoGMPtEta_MC = new TH2F("recoGMPtEta_MC","Reconstructed MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  
+  allPtEta->SetOption("COLZ");
+  pairablePtEta->SetOption("COLZ");
+  notPairablePtEta->SetOption("COLZ");
+  correctPtEta->SetOption("COLZ");
+  fakePtEta->SetOption("COLZ");
+  danglingPtEta->SetOption("COLZ");
+  recoGMPtEta->SetOption("COLZ");
+
+  allPtEta_perfect->SetOption("COLZ");
+  pairablePtEta_perfect->SetOption("COLZ");
+  pairablePtEta_perfect_reco->SetOption("COLZ");
+  notPairablePtEta_perfect->SetOption("COLZ");
+  correctPtEta_perfect->SetOption("COLZ");
+  fakePtEta_perfect->SetOption("COLZ");
+  danglingPtEta_perfect->SetOption("COLZ");
+  recoGMPtEta_perfect->SetOption("COLZ");
+
+  allPtEta_MC->SetOption("COLZ");
+  pairablePtEta_MC->SetOption("COLZ");
+  pairablePtEta_MC_reco->SetOption("COLZ");
+  notPairablePtEta_MC->SetOption("COLZ");
+  correctPtEta_MC->SetOption("COLZ");
+  fakePtEta_MC->SetOption("COLZ");
+  danglingPtEta_MC->SetOption("COLZ");
+  recoGMPtEta_MC->SetOption("COLZ");
+
   // Counters
   Int_t nChargeMatch = 0;
   Int_t nChargeMiss = 0;
@@ -526,6 +604,14 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
             << matching_helper.MatchingCutConfig << std::endl;
   std::cout << "Annotation = " << annotation << std::endl;
 
+  // Perfect Global Muon Tracks
+  TFile* perfecttrkFileIn = new TFile(perfecttrkFile.c_str());
+  TTree* perfectGMtrackTree = (TTree*)perfecttrkFileIn->Get("o2sim");
+  std::vector<GlobalMuonTrack> trackPerfectGMVec, *trackPerfectGMVecP = &trackPerfectGMVec;//trackPerfectGMVecPはtracPerfectGMVecのアドレスの別名
+  perfectGMtrackTree->SetBranchAddress("GlobalMuonTrack", &trackPerfectGMVecP);//trackPerfectGMVecPのアドレス(=trackPerfectGMVecのアドレスのアドレス)にGlobalMuonTrackというブランチの値をセット
+  o2::dataformats::MCTruthContainer<o2::MCCompLabel>* mcLabels_perfect = nullptr;
+  perfectGMtrackTree->SetBranchAddress("GlobalMuonTrackMCTruth", &mcLabels_perfect);
+
   // MFT Tracks
   TFile* mfttrkFileIn = new TFile("mfttracks.root");
   TTree* mftTrackTree = (TTree*)mfttrkFileIn->Get("o2sim");
@@ -557,6 +643,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
     }
     o2SimKineTree->GetEntry(iEvent);
     gmTrackTree->GetEntry(iEvent);
+    perfectGMtrackTree->GetEntry(iEvent);
 
     if (0)
       for (auto& gmTrack : trackGMVec) {
@@ -567,14 +654,20 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
       }
 
     for (auto& gmTrack : trackGMVec) {
-
-      auto bestMFTTrackMatchID = gmTrack.getBestMFTTrackMatchID();
-
       const auto& label = mcLabels->getLabels(iTrack);
+      auto iTrack_perfect = 0;
+      for (auto& perfectGMtrack : trackPerfectGMVec){
+	const auto& label_perfect = mcLabels_perfect->getLabels(iTrack_perfect);
+      auto bestMFTTrackMatchID = gmTrack.getBestMFTTrackMatchID();
       // std::cout << "iTrack = " << iTrack;
       // label[0].print();
-
-      if (iEvent == label[0].getEventID()) {
+      if (iEvent == label[0].getEventID() && iEvent == label_perfect[0].getEventID() && label[0].getTrackID() == label_perfect[0].getTrackID()) { 
+	//std::cout<<"==========================================================================================================================================================="<<endl;
+	//std::cout<<"gmTrack track ID = "<<label[0].getTrackID()<<" ; gmTrack Event ID = "<<label[0].getEventID()<<" ; perfect Track ID = "<<label_perfect[0].getTrackID()<<" ; perfect Event ID = "<<label_perfect[0].getEventID()<<endl;
+	
+	auto thisTrkID = label_perfect[0].getTrackID();
+        MCTrackT<float>* thisTrack = &(*mcTr).at(thisTrkID);
+	/*
         if (DEBUG_VERBOSE) {
           // std::cout << "  Global Track ID = " <<  iTrack << " ; MFTMatchID =
           // " << bestMFTTrackMatchID << " SourceID = " <<
@@ -590,8 +683,51 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
           // bestMFTTrackMatchID << " / labelMFTBestMatch = ";
           // labelMFTBestMatch[0].print();
         }
-        if (gmTrack.closeMatch())
+	*/
+	/*
+	std::cout<<"Output Matching fundamental Info"<<endl; 
+	std::cout << "Global Track ID = " <<  iTrack << " ; isClose = " << gmTrack.closeMatch() << " ; MFTMatchID = " << bestMFTTrackMatchID << " ; SourceID = " <<label[0].getSourceID()<< " ; EventID = " << label[0].getEventID() << " ; trackID = " <<label[0].getTrackID() << " ; isFake = " << label[0].isFake() << " Label: "<<endl;
+	std::cout<<"Output MCtrack's fundamental Info"<<endl;
+	std::cout<<"vx_MC = "<< thisTrack->GetStartVertexCoordinatesX() <<" ; vy_MC = "<< thisTrack->GetStartVertexCoordinatesY() <<" ; vz_MC = "<< thisTrack->GetStartVertexCoordinatesZ() <<" ; Pt_MC = "<< thisTrack->GetPt() <<" ; P_MC = "<< thisTrack->GetP() <<" ; phi_MC = "<< TMath::ATan2(thisTrack->Py(), thisTrack->Px()) <<" ; GetPhi() = "<< thisTrack->GetPhi() << " ; eta_MC = "<< atanh(thisTrack->GetStartVertexMomentumZ() / thisTrack->GetP()) <<" ; GetEta() = "<< thisTrack->GetEta() << " ; tanl_MC = "<< thisTrack->Pz() / thisTrack->GetPt() <<" ; pdgcode_MC = "<< thisTrack->GetPdgCode() <<" ; isPrimary = "<< thisTrack->isPrimary() <<endl;
+	*/
+	allPt->Fill(gmTrack.getPt());
+	allPt_perfect->Fill(perfectGMtrack.getPt());
+	allPt_MC->Fill(thisTrack->GetPt());
+	allPtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	allPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	allPtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+
+        if (gmTrack.closeMatch()){
+	  pairablePt->Fill(gmTrack.getPt());
+	  pairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	  pairablePt_perfect_reco->Fill(perfectGMtrack.getPt());
+          pairablePtEta_perfect_reco->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  pairablePt_MC_reco->Fill(thisTrack->GetPt());
+	  pairablePtEta_MC_reco->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
           nCloseMatches++;
+	}
+	if (!gmTrack.closeMatch()){
+	  notPairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	}
+	
+	if (perfectGMtrack.closeMatch()){
+	  pairablePt_perfect->Fill(perfectGMtrack.getPt());
+	  pairablePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  pairablePt_MC->Fill(thisTrack->GetPt());
+	  pairablePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	    if (label[0].isCorrect()==1 && !(gmTrack.getPt()-perfectGMtrack.getPt()==0)){
+	      pairablePt_perfect_replace->Fill(gmTrack.getPt());
+	    }
+	    else {
+	      pairablePt_perfect_replace->Fill(perfectGMtrack.getPt());
+	    }
+	    
+	}
+	if (!perfectGMtrack.closeMatch()){
+	  notPairablePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  notPairablePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	}
+
         pairedMCHTracksEff->Fill(bestMFTTrackMatchID > -1, gmTrack.getPt());
         globalMuonCombinedEff->Fill(label[0].isCorrect(), gmTrack.getPt());
         closeMatchEff->Fill(gmTrack.closeMatch(), gmTrack.getPt());
@@ -601,10 +737,26 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
                                             gmTrack.getPt());
         }
         if (label[0].isCorrect()) { // Correct match track: add to histograms
+	  /*
+	  if (gmTrack.getPt()-perfectGMtrack.getPt()){
+	    std::cout<<" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~  "<<endl;
+	    std::cout<<"Output Reconstructed GMtrack's fundamental Info"<<endl;
+
+	    std::cout<<"delta = "<<fixed<<setprecision(100)<<gmTrack.getPt()-perfectGMtrack.getPt()<<endl;
+
+	    std::cout<<"Global Track pT = "<<fixed<<setprecision(100)<<gmTrack.getPt()<<endl;
+	    std::cout<<"Perfec Track pT = "<<fixed<<setprecision(100)<<perfectGMtrack.getPt()<<endl;
+
+	  }
+	  */
+	  correctPt->Fill(gmTrack.getPt());
+	  correctPt_perfect->Fill(perfectGMtrack.getPt());
+	  correctPt_MC->Fill(thisTrack->GetPt());
+	  correctPtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	  correctPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+          correctPtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
           nCorrectMatchGMTracks++;
           // pairedMCHTracksEff->Fill(1,gmTrack.getPt());
-          auto thisTrkID = label[0].getTrackID();
-          MCTrackT<float>* thisTrack = &(*mcTr).at(thisTrkID);
           auto vx_MC = thisTrack->GetStartVertexCoordinatesX();
           auto vy_MC = thisTrack->GetStartVertexCoordinatesY();
           auto vz_MC = thisTrack->GetStartVertexCoordinatesZ();
@@ -627,7 +779,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
                              ->GetName()
                         << "\n";
           }
-
+	  
           else {
             Q_MC = 0;
             std::cout << " => pdgcode ERROR " << Q_MC << "\n";
@@ -636,7 +788,6 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
           gmTrack.propagateToZhelix(vz_MC, field_z);
           // gmTrack.propagateToZquadratic(vz_MC,field_z);
           // gmTrack.propagateToZlinear(vz_MC,field_z);
-
           auto Q_fit = gmTrack.getCharge();
           auto dx = gmTrack.getX() - vx_MC;
           auto dy = gmTrack.getY() - vy_MC;
@@ -755,13 +906,28 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
           qMatchEff->Fill(!d_Charge, Pt_MC);
         } else {
           if (bestMFTTrackMatchID >= 0) {
+	    fakePt->Fill(gmTrack.getPt());
+	    fakePt_perfect->Fill(perfectGMtrack.getPt());
+	    fakePt_MC->Fill(thisTrack->GetPt());
+	    fakePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	    fakePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+            fakePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
             nFakeGMTracks++;
-          } else
-            nNoMatchGMTracks++;
+          } else{
+	    danglingPt->Fill(gmTrack.getPt());
+	    danglingPt_perfect->Fill(perfectGMtrack.getPt());
+	    danglingPt_MC->Fill(thisTrack->GetPt());
+	    danglingPtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	    danglingPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+            danglingPtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	    nNoMatchGMTracks++;
+	  }
         }
       }
+      iTrack_perfect++;
+      }//Loop on Perfect
       iTrack++;
-
+      //}//Loop on Perfect
     } // Loop on GMTracks
   }   // Loop over events
 
@@ -1028,7 +1194,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
     if (EXPORT_HISTOS_IMAGES)
       exportHisto(*h);
   }
-
+  //allPt->Add(CorrectGMtrackspT,FakeGMtrackspT);
+  //allPt->Add(GMtrackspT,DanglingtrackspT);
   PtRes_Profile->Write();
   DeltaX_Profile->Write();
   DeltaX_Error->Write();
@@ -1037,6 +1204,238 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   globalMuonCorrectMatchRatio->Write();
   closeMatchEff->Write();
   globalMuonCombinedEff->Write();
+  
+  allPt->Write();
+  pairablePt->Write();
+  correctPt->Write();
+  fakePt->Write();
+  danglingPt->Write();
+  recoGMPt->Add(correctPt,fakePt);
+  recoGMPt->Write();
+
+  allPt_perfect->Write();
+  pairablePt_perfect->Write();
+  pairablePt_perfect_reco->Write();
+  pairablePt_perfect_replace->Write();
+  correctPt_perfect->Write();
+  fakePt_perfect->Write();
+  danglingPt_perfect->Write();
+  recoGMPt_perfect->Add(correctPt_perfect,fakePt_perfect);
+  recoGMPt_perfect->Write();
+
+  allPt_MC->Write();
+  pairablePt_MC->Write();
+  correctPt_MC->Write();
+  fakePt_MC->Write();
+  danglingPt_MC->Write();
+  recoGMPt_MC->Add(correctPt_MC,fakePt_MC);
+  recoGMPt_MC->Write();
+
+  allPtEta->Write();
+  pairablePtEta->Write();
+  notPairablePtEta->Write();
+  correctPtEta->Write();
+  fakePtEta->Write();
+  danglingPtEta->Write();
+  recoGMPtEta->Add(correctPtEta,fakePtEta);
+  recoGMPtEta->Write();
+
+  allPtEta_perfect->Write();
+  pairablePtEta_perfect->Write();
+  notPairablePtEta_perfect->Write();
+  pairablePtEta_perfect_reco->Write();
+  correctPtEta_perfect->Write();
+  fakePtEta_perfect->Write();
+  danglingPtEta_perfect->Write();
+  recoGMPtEta_perfect->Add(correctPtEta_perfect,fakePtEta_perfect);
+  recoGMPtEta_perfect->Write();
+
+  allPtEta_MC->Write();
+  pairablePtEta_MC->Write();
+  notPairablePtEta_MC->Write();
+  pairablePtEta_MC_reco->Write();
+  correctPtEta_MC->Write();
+  fakePtEta_MC->Write();
+  danglingPtEta_MC->Write();
+  recoGMPtEta_MC->Add(correctPtEta_MC,fakePtEta_MC);
+  recoGMPtEta_MC->Write();
+  
+  std::cout<<"1"<<endl;
+  allPt->Rebin(40);
+  std::cout<<"2"<<endl;
+  pairablePt->Rebin(40);
+  std::cout<<"3"<<endl;
+  correctPt->Rebin(40);
+  std::cout<<"4"<<endl;
+  fakePt->Rebin(40);
+  std::cout<<"5"<<endl;
+  recoGMPt->Rebin(40);
+  std::cout<<"6"<<endl;
+  pairablePt_perfect_reco->Rebin(40);
+  std::cout<<"7"<<endl;
+  pairablePt_perfect->Rebin(40);
+  std::cout<<"8"<<endl;
+  pairablePt_perfect_replace->Rebin(40);
+  std::cout<<"9"<<endl;
+  allPt_MC->Rebin(40);
+  std::cout<<"10"<<endl;
+  pairablePt_MC->Rebin(40);
+  std::cout<<"11"<<endl;
+  correctPt_MC->Rebin(40);
+  std::cout<<"12"<<endl;
+  fakePt_MC->Rebin(40);
+  std::cout<<"13"<<endl;
+  recoGMPt_MC->Rebin(40);
+  std::cout<<"14"<<endl;
+  pairablePt_MC_reco->Rebin(40);
+  std::cout<<"15"<<endl;
+  pairablePt_MC->Rebin(40);
+  
+  /*
+`// Use TH1F for Efficiency
+  TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
+  TH1F *TruePairingEfficiency = new TH1F("TruePairingEfficiency","True Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{true}",25,0,10);
+  TH1F *FakePairingEfficiency = new TH1F("FakePairingEfficiency","Fake Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{fake}",25,0,10);
+  TH1F *AlternativePairingEfficiency = new TH1F("AlternativePairingEfficiency","Alternative Pairing Efficiency;p_{T}[GeV/c];#epsilon^{MCH/MFT}_{pairing}",25,0,10);
+  TH1F *GlobalPairingPurity = new TH1F("GlobalPairingPurity","Global Pairing Purity;p_{T}[GeV/c];P^{GM}_{pairing}",25,0,10);
+  TH1F *ClosingMatchingEfficiency = new TH1F("ClosingMatchingEfficiency","Closing Matching Efficiency;p_{T}[GeV/c];#epsilon_{close}",25,0,10);
+  PairingEfficiency->Divide(recoGMPt,pairablePt_perfect);
+  TruePairingEfficiency->Divide(correctPt,pairablePt_perfect);
+  FakePairingEfficiency->Divide(fakePt,pairablePt_perfect);
+  AlternativePairingEfficiency->Divide(recoGMPt,allPt);
+  GlobalPairingPurity->Divide(correctPt,recoGMPt);
+  ClosingMatchingEfficiency->Divide(pairablePt,pairablePt_perfect);
+  for (int i=0; i<PairingEfficiency->GetNbinsX()+1; i++){
+    PairingEfficiency->SetBinError(i,recoGMPt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+    TruePairingEfficiency->SetBinError(i,correctPt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+    FakePairingEfficiency->SetBinError(i,fakePt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+    AlternativePairingEfficiency->SetBinError(i,recoGMPt->GetBinError(i)/allPt->GetBinContent(i));
+    GlobalPairingPurity->SetBinError(i,correctPt->GetBinError(i)/recoGMPt->GetBinContent(i));
+    ClosingMatchingEfficiency->SetBinError(i,pairablePt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+  }
+  */
+
+  //Use TEfficiency for Efficiency
+  //std::cout<<"making PairingEfficiency"<<endl;
+  //TEfficiency *PairingEfficiency = new TEfficiency(*recoGMPt,*pairablePt_perfect);
+  std::cout<<"making TruePairingEfficiency"<<endl;
+  TEfficiency *TruePairingEfficiency = new TEfficiency(*correctPt,*pairablePt_perfect_replace);
+  //std::cout<<"making FakePairingEfficiency"<<endl;
+  //TEfficiency *FakePairingEfficiency = new TEfficiency(*fakePt,*pairablePt_perfect);
+  std::cout<<"making AlternativePairingEfficiency"<<endl;
+  TEfficiency *AlternativePairingEfficiency = new TEfficiency(*recoGMPt,*allPt);
+  std::cout<<"making GlobalPairingPurity"<<endl;
+  TEfficiency *GlobalPairingPurity = new TEfficiency(*correctPt,*recoGMPt);
+  std::cout<<"making ClosingMatchingEfficiency"<<endl;
+  TEfficiency *ClosingMatchingEfficiency = new TEfficiency(*pairablePt_perfect_reco,*pairablePt_perfect);
+
+  //PairingEfficiency->SetTitle("Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}");
+  TruePairingEfficiency->SetTitle("True Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{true}");
+  //FakePairingEfficiency->SetTitle("Fake Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{fake}");
+  AlternativePairingEfficiency->SetTitle("Alternative Pairing Efficiency;p_{T}[GeV/c];#epsilon^{MCH/MFT}_{pairing}");
+  GlobalPairingPurity->SetTitle("Global Pairing Purity;p_{T}[GeV/c];P^{GM}_{pairing}");
+  ClosingMatchingEfficiency->SetTitle("Closing Matching Efficiency;p_{T}[GeV/c];#epsilon_{close}");
+  
+  //Write Efficiency
+  //PairingEfficiency->Write();
+  TruePairingEfficiency->Write();
+  //FakePairingEfficiency->Write();
+  AlternativePairingEfficiency->Write();
+  GlobalPairingPurity->Write();
+  ClosingMatchingEfficiency->Write();
+
+  
+  //Use TH2F for pT-Eta Efficiency
+  TH2F *PairingEfficiencyPtEta = new TH2F("PairingEfficiencyPtEta","Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *TruePairingEfficiencyPtEta = new TH2F("TruePairingEfficiencyPtEta","True Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *FakePairingEfficiencyPtEta = new TH2F("FakePairingEfficiencyPtEta","Fake Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *AlternativePairingEfficiencyPtEta = new TH2F("AlternativePairingEfficiencyPtEta","Alternative Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *GlobalPairingPurityPtEta = new TH2F("GlobalPairingPurityPtEta","Global Pairing Purity;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *ClosingMatchingEfficiencyPtEta = new TH2F("ClosingMatchingEfficiencyPtEta","Closing Matching Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  PairingEfficiencyPtEta->Divide(recoGMPtEta,pairablePtEta_perfect);
+  TruePairingEfficiencyPtEta->Divide(correctPtEta,pairablePtEta_perfect);
+  FakePairingEfficiencyPtEta->Divide(fakePtEta,pairablePtEta_perfect);
+  AlternativePairingEfficiencyPtEta->Divide(recoGMPtEta,allPtEta);
+  GlobalPairingPurityPtEta->Divide(correctPtEta,recoGMPtEta);
+  ClosingMatchingEfficiencyPtEta->Divide(pairablePtEta_perfect_reco,pairablePtEta_perfect);
+  PairingEfficiencyPtEta->SetOption("COLZ");
+  TruePairingEfficiencyPtEta->SetOption("COLZ");
+  FakePairingEfficiencyPtEta->SetOption("COLZ");
+  AlternativePairingEfficiencyPtEta->SetOption("COLZ");
+  GlobalPairingPurityPtEta->SetOption("COLZ");
+  ClosingMatchingEfficiencyPtEta->SetOption("COLZ");
+  
+  /*
+  //Use TEfficiency for pT-Eta Efficiency
+  //std::cout<<"making PairingEfficiencyPtEta"<<endl;
+  //TEfficiency *PairingEfficiencyPtEta = new TEfficiency(*recoGMPtEta,*pairablePtEta_perfect);
+  std::cout<<"making TruePairingEfficiencyPtEta"<<endl;
+  TEfficiency *TruePairingEfficiencyPtEta = new TEfficiency(*correctPtEta,*pairablePtEta_perfect);
+  //std::cout<<"making FakePairingEfficiencyPtEta"<<endl;
+  //TEfficiency *FakePairingEfficiencyPtEta = new TEfficiency(*fakePtEta,*pairablePtEta_perfect);
+  std::cout<<"making AlternativePairingEfficiencyPtEta"<<endl;
+  TEfficiency *AlternativePairingEfficiencyPtEta = new TEfficiency(*recoGMPtEta,*allPtEta);
+  std::cout<<"making GlobalPairingPurityPtEta"<<endl;
+  TEfficiency *GlobalPairingPurityPtEta = new TEfficiency(*correctPtEta,*recoGMPtEta);
+  std::cout<<"making ClosingMatchingEfficiencyPtEta"<<endl;
+  TEfficiency *ClosingMatchingEfficiencyPtEta = new TEfficiency(*pairablePtEta_perfect_reco,*pairablePtEta_perfect);
+
+  //PairingEfficiencyPtEta->SetTitle("Pairing Efficiency;p_{T}[GeV/c];#eta");
+  TruePairingEfficiencyPtEta->SetTitle("True Pairing Efficiency;p_{T}[GeV/c];#eta");
+  //FakePairingEfficiencyPtEta->SetTitle("Fake Pairing Efficiency;p_{T}[GeV/c];#eta");
+  AlternativePairingEfficiencyPtEta->SetTitle("Alternative Pairing Efficiency;p_{T}[GeV/c];#eta");
+  GlobalPairingPurityPtEta->SetTitle("Global Pairing Purity;p_{T}[GeV/c];eta");
+  ClosingMatchingEfficiencyPtEta->SetTitle("Closing Matching Efficiency;p_{T}[GeV/c];#eta");
+  */
+
+  //Write pT-Eta Efficiency
+  PairingEfficiencyPtEta->Write();
+  TruePairingEfficiencyPtEta->Write();
+  FakePairingEfficiencyPtEta->Write();
+  AlternativePairingEfficiencyPtEta->Write();
+  GlobalPairingPurityPtEta->Write();
+  ClosingMatchingEfficiencyPtEta->Write();
+
+  //std::cout<<"making PairingEfficiency_MC"<<endl;
+  //TEfficiency *PairingEfficiency_MC = new TEfficiency(*recoGMPt_MC,*pairablePt_MC);
+  std::cout<<"making TruePairingEfficiency_MC"<<endl;
+  TEfficiency *TruePairingEfficiency_MC = new TEfficiency(*correctPt_MC,*pairablePt_MC);
+  //std::cout<<"making FakePairingEfficiency_MC"<<endl;
+  //TEfficiency *FakePairingEfficiency_MC = new TEfficiency(*fakePt_MC,*pairablePt_MC);
+  std::cout<<"making ClosingMatchingEfficiency_MC"<<endl;
+  TEfficiency *ClosingMatchingEfficiency_MC = new TEfficiency(*pairablePt_MC_reco,*pairablePt_MC);
+
+  //PairingEfficiency_MC->SetTitle("MC Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}");
+  TruePairingEfficiency_MC->SetTitle("MC True Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{true}");
+  //FakePairingEfficiency_MC->SetTitle("MC Fake Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{fake}");
+  ClosingMatchingEfficiency_MC->SetTitle("MC Closing Matching Efficiency;p_{T}[GeV/c];#epsilon_{close}");
+
+  //Write Efficiency
+  //PairingEfficiency_MC->Write();
+  TruePairingEfficiency_MC->Write();
+  //FakePairingEfficiency_MC->Write();
+  ClosingMatchingEfficiency_MC->Write();
+
+  //Use TH2F for pT-Eta Efficiency
+  TH2F *PairingEfficiencyPtEta_MC = new TH2F("PairingEfficiencyPtEta_MC","MC Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *TruePairingEfficiencyPtEta_MC = new TH2F("TruePairingEfficiencyPtEta_MC","MC True Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *FakePairingEfficiencyPtEta_MC = new TH2F("FakePairingEfficiencyPtEta_MC","MC Fake Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  TH2F *ClosingMatchingEfficiencyPtEta_MC = new TH2F("ClosingMatchingEfficiencyPtEta_MC","MC Closing Matching Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
+  PairingEfficiencyPtEta_MC->Divide(recoGMPtEta_MC,pairablePtEta_MC);
+  TruePairingEfficiencyPtEta_MC->Divide(correctPtEta_MC,pairablePtEta_MC);
+  FakePairingEfficiencyPtEta_MC->Divide(fakePtEta_MC,pairablePtEta_MC);
+  ClosingMatchingEfficiencyPtEta_MC->Divide(pairablePtEta_MC_reco,pairablePtEta_MC);
+  PairingEfficiencyPtEta_MC->SetOption("COLZ");
+  TruePairingEfficiencyPtEta_MC->SetOption("COLZ");
+  FakePairingEfficiencyPtEta_MC->SetOption("COLZ");
+  ClosingMatchingEfficiencyPtEta_MC->SetOption("COLZ");
+
+  //Write pT-Eta Efficiency
+  PairingEfficiencyPtEta_MC->Write();
+  TruePairingEfficiencyPtEta_MC->Write();
+  FakePairingEfficiencyPtEta_MC->Write();
+  ClosingMatchingEfficiencyPtEta_MC->Write();
+
   outFile.cd();
   outFile.WriteObjectAny(&matching_helper, "MatchingHelper", "Matching Helper");
 

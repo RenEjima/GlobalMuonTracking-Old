@@ -143,6 +143,10 @@ void loadAndSetMatchingConfig()
       std::cout << " Setting " << matching_cutfcn << std::endl;
       matcher.setCutFunction(&MUONMatcher::matchCutVarXYAngles);
     }
+    if (matching_cutfcn.find("cutMCHEta_") < matching_cutfcn.length()) {
+      std::cout << " Setting " << matching_cutfcn << std::endl;
+      matcher.setCutFunction(&MUONMatcher::matchCutMCHEta);
+    }
   }
 
   if (gSystem->Getenv("ENABLECHARGEMATCHCUT")) {
@@ -235,7 +239,8 @@ int runMatching()
   evalMLExportOrTrain();
 
   //matcher.runEventMatching();
-  matcher.runONNXRuntime();
+  //matcher.runONNXRuntime();
+  matcher.runPythonMatching();
 
   // Kalman filter
   matcher.fitTracks();

@@ -213,6 +213,7 @@ class MUONMatcher
   void
     runHeavyMatching();    // Finds best match (no search cut, no event separation)
   void runEventMatching(); // Finds best match event-per-event
+  void runPythonMatching();
   bool printMatchingPlaneView(int event, int MCHTrackID = 0);
   void exportNMatchingPlaneViews(int nTracks)
   {
@@ -331,6 +332,7 @@ class MUONMatcher
   bool matchCut3Sigma(const MCHTrackConv&, const MFTTrack&);
   bool matchCutNSigma(const MCHTrackConv&, const MFTTrack&);
   bool matchCutVarXYAngles(const MCHTrackConv&, const MFTTrack&);
+  bool matchCutMCHEta(const MCHTrackConv&, const MFTTrack&);
   void setCutParam(int index, double param)
   {
     if (index > ((int)mCutParams.size() - 1))
