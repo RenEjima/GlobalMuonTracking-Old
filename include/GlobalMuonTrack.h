@@ -35,6 +35,8 @@ class GlobalMuonTrack : public o2::track::TrackParCovFwd
 
   void setBestMFTTrackMatchID(int ID) { mBestMFTTrackMatchID = ID; }
   double getBestMFTTrackMatchID() { return mBestMFTTrackMatchID; }
+  void setPairable() { mPairable = true; }
+  bool pairable() { return mPairable; }
   void setCloseMatch() { mCloseMatch = true; }
   bool closeMatch() { return mCloseMatch; }
   void computeResiduals2Cov(const o2::track::TrackParCovFwd& t)
@@ -69,6 +71,7 @@ class GlobalMuonTrack : public o2::track::TrackParCovFwd
   int mBestMFTTrackMatchID = -1;
   int mMCHTrackID = -1;
   int mNMFTCandidates = 0; // Number of candidates within search cut
+  bool mPairable = false;
   bool mCloseMatch = false;
   SMatrix5 mResiduals2Cov;
 };
