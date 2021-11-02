@@ -387,6 +387,8 @@ void MUONMatcher::runEventMatching()
         auto mftTrackID = 0;
         for (auto mftTrack : mSortedMFTTracks[event]) {
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
+          if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) //{ //Add{ perfect
+            gTrack.setPairable();
           if (matchingCut(gTrack, mftTrack)) {
 	    if(gTrack.getEta()>-3.4){ //perfect
             gTrack.countCandidate();
@@ -416,6 +418,9 @@ void MUONMatcher::runEventMatching()
           //printf("BV: MFT track %d \n", mftTrackID);
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
           if (MFTlabel.getEventID() == event) {
+            if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) {
+              gTrack.setPairable();
+            }
             if (matchingCut(gTrackTmp, mftTrack)) {
               GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
               gTrack.setParametersMCH(gTrack.getParameters());
@@ -1182,6 +1187,9 @@ bool MUONMatcher::printMatchingPlaneView(int event, int MCHTrackID)
       xPositions.emplace_back(mftTrack.getX());
       yPositions.emplace_back(mftTrack.getY());
       pointsColors.emplace_back("black");
+      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) {
+        gTrack.setPairable();
+      }
       if (matchingCut(MCHTrack, mftTrack)) {
         pointsColors.back() = "blue";
         MCHTrack.countCandidate();
@@ -2772,7 +2780,7 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
 	  //std::cout<<"Hiroshima Score = "<<score<<endl;
 
           mchTrack.setMatchingChi2(score);
-	  
+
 	  mftTrack.propagateToZhelix(0., mField_z);
 	  MFT_X_Z0 = mftTrack.getX();
 	  MFT_Y_Z0 = mftTrack.getY();
@@ -2780,7 +2788,7 @@ void MUONMatcher::exportTrainingDataRoot(int nMCHTracks)
 	  trkOutZ = outParam.getZ();
 	  mftTrack.propagateToZhelix(mMatchingPlaneZ, mField_z);
 	  //std::cout<<"MFT track X = "<<mftTrack.getX()<<"MFT OutParam Z = "<<outParam.getZ()<<endl;
-	  
+
 	  //std::cout<<"MFT_X = "<<mftTrack.getX()<<" MCH_X = "<<mchTrack.getX()<<endl;
 	  //std::cout<<"Matching Score = "<<matchChi2Track<<endl;
 	  if ((mCorrectMatchIgnoreCut && Truth) || matchingCut(mchTrack, mftTrack)) {
@@ -2870,6 +2878,10 @@ void MUONMatcher::runONNXRuntime()
 
 	    auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
 
+      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
+              gTrack.setPairable();
+      }
+
 	    if (matchingCut(gTrack, mftTrack)) {
 	      //if(gTrack.getEta()>-3.4){
 
@@ -2936,6 +2948,9 @@ void MUONMatcher::runONNXRuntime()
 	  auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
 
 	  if (MFTlabel.getEventID() == event) {
+      if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
+              gTrack.setPairable();
+            }
             if (matchingCut(gTrackTmp, mftTrack)) {
 
 	      GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};

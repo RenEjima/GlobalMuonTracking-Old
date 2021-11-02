@@ -479,6 +479,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   //GM pT distribution
   TH1F *allPt = new TH1F("allPt","all GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *pairablePt = new TH1F("pairablePt","pairable GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+	TH1F *closePt = new TH1F("closePt","close GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *correctPt = new TH1F("correctPt","Correct Matched GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *fakePt = new TH1F("fakePt","Fake Matched GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *danglingPt = new TH1F("danglingPt","Dangling GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
@@ -488,6 +489,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH1F *pairablePt_perfect = new TH1F("pairablePt_Perfect","pairable perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *pairablePt_perfect_reco = new TH1F("pairablePt_Perfect_reco","pairable perfect GMtrack in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *pairablePt_perfect_replace = new TH1F("pairablePt_Perfect_replace","replaced pairable perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+	TH1F *closePt_perfect = new TH1F("closePt_Perfect","close perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *closePt_perfect_reco = new TH1F("closePt_Perfect_reco","close perfect GMtrack in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *closePt_perfect_replace = new TH1F("closePt_Perfect_replace","replaced close perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *correctPt_perfect = new TH1F("correctPt_Perfect","Correct Matched perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *fakePt_perfect = new TH1F("fakePt_Perfect","Fake Matched perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *danglingPt_perfect = new TH1F("danglingPt_Perfect","Dangling perfect GMtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
@@ -496,6 +500,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH1F *allPt_MC = new TH1F("allPt_MC","all MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *pairablePt_MC = new TH1F("pairablePt_MC","pairable MCtracks pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *pairablePt_MC_reco = new TH1F("pairablePt_MC_reco","pairable MCtracks in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
+	TH1F *closePt_MC = new TH1F("closePt_MC","close MCtracks pT;p_{T}[GeV/c];Entry",1000,0,10);
+  TH1F *closePt_MC_reco = new TH1F("closePt_MC_reco","close MCtracks in reconstructed pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *correctPt_MC = new TH1F("correctPt_MC","Correct Matched MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *fakePt_MC = new TH1F("fakePt_MC","Fake Matched MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
   TH1F *danglingPt_MC = new TH1F("danglingPt_MC","Dangling MCtrack pT;p_{T}[GeV/c];Entry",1000,0,10);
@@ -504,6 +510,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH2F *allPtEta = new TH2F("allPtEta","all GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *pairablePtEta = new TH2F("pairablePtEta","pairable reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *notPairablePtEta = new TH2F("notPairablePtEta","Not pairable reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+	TH2F *closePtEta = new TH2F("closePtEta","close reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notClosePtEta = new TH2F("notClosePtEta","Not close reconstructed GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *correctPtEta = new TH2F("correctPtEta","Correct Matched GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *fakePtEta = new TH2F("fakePtEta","Fake Matched GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *danglingPtEta = new TH2F("danglingPtEta","Dangling GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
@@ -513,6 +521,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH2F *pairablePtEta_perfect = new TH2F("pairablePtEta_perfect","pairable perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *pairablePtEta_perfect_reco = new TH2F("pairablePtEta_perfect_reco","pairable perfect GMtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *notPairablePtEta_perfect = new TH2F("notPairablePtEta_perfect","Not pairable perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+	TH2F *closePtEta_perfect = new TH2F("closePtEta_perfect","close perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *closePtEta_perfect_reco = new TH2F("closePtEta_perfect_reco","close perfect GMtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notClosePtEta_perfect = new TH2F("notClosePtEta_perfect","Not close perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *correctPtEta_perfect = new TH2F("correctPtEta_perfect","Correct Matched perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *fakePtEta_perfect = new TH2F("fakePtEta_perfect","Fake Matched perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *danglingPtEta_perfect = new TH2F("danglingPtEta_perfect","Dangling perfect GMtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
@@ -522,14 +533,19 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH2F *pairablePtEta_MC = new TH2F("pairablePtEta_MC","pairable MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *pairablePtEta_MC_reco = new TH2F("pairablePtEta_MC_reco","pairable MCtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *notPairablePtEta_MC = new TH2F("notPairablePtEta_MC","Not pairable MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+	TH2F *closePtEta_MC = new TH2F("closePtEta_MC","close MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *closePtEta_MC_reco = new TH2F("closePtEta_MC_reco","close MCtrack in reconstructed;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
+  TH2F *notClosePtEta_MC = new TH2F("notClosePtEta_MC","Not close MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *correctPtEta_MC = new TH2F("correctPtEta_MC","Correct Matched MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *fakePtEta_MC = new TH2F("fakePtEta_MC","Fake Matched MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *danglingPtEta_MC = new TH2F("danglingPtEta_MC","Dangling MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
   TH2F *recoGMPtEta_MC = new TH2F("recoGMPtEta_MC","Reconstructed MCtrack;p_{T}[GeV/c];#eta",200,0,10,200,-4.0,-2.0);
-  
+
   allPtEta->SetOption("COLZ");
   pairablePtEta->SetOption("COLZ");
   notPairablePtEta->SetOption("COLZ");
+	closePtEta->SetOption("COLZ");
+  notClosePtEta->SetOption("COLZ");
   correctPtEta->SetOption("COLZ");
   fakePtEta->SetOption("COLZ");
   danglingPtEta->SetOption("COLZ");
@@ -539,6 +555,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePtEta_perfect->SetOption("COLZ");
   pairablePtEta_perfect_reco->SetOption("COLZ");
   notPairablePtEta_perfect->SetOption("COLZ");
+	closePtEta_perfect->SetOption("COLZ");
+  closePtEta_perfect_reco->SetOption("COLZ");
+  notClosePtEta_perfect->SetOption("COLZ");
   correctPtEta_perfect->SetOption("COLZ");
   fakePtEta_perfect->SetOption("COLZ");
   danglingPtEta_perfect->SetOption("COLZ");
@@ -548,6 +567,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePtEta_MC->SetOption("COLZ");
   pairablePtEta_MC_reco->SetOption("COLZ");
   notPairablePtEta_MC->SetOption("COLZ");
+	closePtEta_MC->SetOption("COLZ");
+  closePtEta_MC_reco->SetOption("COLZ");
+  notClosePtEta_MC->SetOption("COLZ");
   correctPtEta_MC->SetOption("COLZ");
   fakePtEta_MC->SetOption("COLZ");
   danglingPtEta_MC->SetOption("COLZ");
@@ -657,15 +679,15 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
       const auto& label = mcLabels->getLabels(iTrack);
       auto iTrack_perfect = 0;
       for (auto& perfectGMtrack : trackPerfectGMVec){
-	const auto& label_perfect = mcLabels_perfect->getLabels(iTrack_perfect);
-      auto bestMFTTrackMatchID = gmTrack.getBestMFTTrackMatchID();
-      // std::cout << "iTrack = " << iTrack;
-      // label[0].print();
-      if (iEvent == label[0].getEventID() && iEvent == label_perfect[0].getEventID() && label[0].getTrackID() == label_perfect[0].getTrackID()) { 
+				const auto& label_perfect = mcLabels_perfect->getLabels(iTrack_perfect);
+      	auto bestMFTTrackMatchID = gmTrack.getBestMFTTrackMatchID();
+      	// std::cout << "iTrack = " << iTrack;
+      	// label[0].print();
+      	if (iEvent == label[0].getEventID() && iEvent == label_perfect[0].getEventID() && label[0].getTrackID() == label_perfect[0].getTrackID()) {
 	//std::cout<<"==========================================================================================================================================================="<<endl;
 	//std::cout<<"gmTrack track ID = "<<label[0].getTrackID()<<" ; gmTrack Event ID = "<<label[0].getEventID()<<" ; perfect Track ID = "<<label_perfect[0].getTrackID()<<" ; perfect Event ID = "<<label_perfect[0].getEventID()<<endl;
-	
-	auto thisTrkID = label_perfect[0].getTrackID();
+
+				auto thisTrkID = label_perfect[0].getTrackID();
         MCTrackT<float>* thisTrack = &(*mcTr).at(thisTrkID);
 	/*
         if (DEBUG_VERBOSE) {
@@ -685,11 +707,13 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
         }
 	*/
 	/*
-	std::cout<<"Output Matching fundamental Info"<<endl; 
+	std::cout<<"Output Matching fundamental Info"<<endl;
 	std::cout << "Global Track ID = " <<  iTrack << " ; isClose = " << gmTrack.closeMatch() << " ; MFTMatchID = " << bestMFTTrackMatchID << " ; SourceID = " <<label[0].getSourceID()<< " ; EventID = " << label[0].getEventID() << " ; trackID = " <<label[0].getTrackID() << " ; isFake = " << label[0].isFake() << " Label: "<<endl;
 	std::cout<<"Output MCtrack's fundamental Info"<<endl;
 	std::cout<<"vx_MC = "<< thisTrack->GetStartVertexCoordinatesX() <<" ; vy_MC = "<< thisTrack->GetStartVertexCoordinatesY() <<" ; vz_MC = "<< thisTrack->GetStartVertexCoordinatesZ() <<" ; Pt_MC = "<< thisTrack->GetPt() <<" ; P_MC = "<< thisTrack->GetP() <<" ; phi_MC = "<< TMath::ATan2(thisTrack->Py(), thisTrack->Px()) <<" ; GetPhi() = "<< thisTrack->GetPhi() << " ; eta_MC = "<< atanh(thisTrack->GetStartVertexMomentumZ() / thisTrack->GetP()) <<" ; GetEta() = "<< thisTrack->GetEta() << " ; tanl_MC = "<< thisTrack->Pz() / thisTrack->GetPt() <<" ; pdgcode_MC = "<< thisTrack->GetPdgCode() <<" ; isPrimary = "<< thisTrack->isPrimary() <<endl;
 	*/
+
+	//// All GMtracks ////////////////////////////////////////////////////////////////////////////////
 	allPt->Fill(gmTrack.getPt());
 	allPt_perfect->Fill(perfectGMtrack.getPt());
 	allPt_MC->Fill(thisTrack->GetPt());
@@ -697,37 +721,52 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	allPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
 	allPtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
 
-        if (gmTrack.closeMatch()){
-	  pairablePt->Fill(gmTrack.getPt());
-	  pairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
-	  pairablePt_perfect_reco->Fill(perfectGMtrack.getPt());
-          pairablePtEta_perfect_reco->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
-	  pairablePt_MC_reco->Fill(thisTrack->GetPt());
-	  pairablePtEta_MC_reco->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
-          nCloseMatches++;
-	}
-	if (!gmTrack.closeMatch()){
-	  notPairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
-	}
-	
-	if (perfectGMtrack.closeMatch()){
-	  pairablePt_perfect->Fill(perfectGMtrack.getPt());
-	  pairablePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
-	  pairablePt_MC->Fill(thisTrack->GetPt());
-	  pairablePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
-	    if (label[0].isCorrect()==1 && !(gmTrack.getPt()-perfectGMtrack.getPt()==0)){
-	      pairablePt_perfect_replace->Fill(gmTrack.getPt());
-	    }
-	    else {
-	      pairablePt_perfect_replace->Fill(perfectGMtrack.getPt());
-	    }
-	    
-	}
-	if (!perfectGMtrack.closeMatch()){
-	  notPairablePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
-	  notPairablePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	//// Reconstructed GMtrack is Pairable ////////////////////////////////////////////////////////////////////////////////
+	if(gmTrack.pairable()){
+		pairablePt->Fill(gmTrack.getPt());
+		pairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+		pairablePt_perfect_reco->Fill(perfectGMtrack.getPt());
+		pairablePtEta_perfect_reco->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+		pairablePt_MC_reco->Fill(thisTrack->GetPt());
+		pairablePtEta_MC_reco->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
 	}
 
+	if(!(gmTrack.pairable())){
+		notPairablePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	}
+
+	//// Reconstrucrted GMtrack is Close ////////////////////////////////////////////////////////////////////////////////
+  if (gmTrack.closeMatch()){
+	  closePt->Fill(gmTrack.getPt());
+	  closePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	  closePt_perfect_reco->Fill(perfectGMtrack.getPt());
+    closePtEta_perfect_reco->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  closePt_MC_reco->Fill(thisTrack->GetPt());
+	  closePtEta_MC_reco->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+    nCloseMatches++;
+	}
+	if (!gmTrack.closeMatch()){
+	  notClosePtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	}
+	//// Perfect GMtrack is Close ////////////////////////////////////////////////////////////////////////////////
+	if (perfectGMtrack.closeMatch()){
+	  closePt_perfect->Fill(perfectGMtrack.getPt());
+	  closePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  closePt_MC->Fill(thisTrack->GetPt());
+	  closePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	    if (label[0].isCorrect()==1 && !(gmTrack.getPt()-perfectGMtrack.getPt()==0)){
+	      closePt_perfect_replace->Fill(gmTrack.getPt());
+	    }
+	    else {
+	      closePt_perfect_replace->Fill(perfectGMtrack.getPt());
+	    }
+	}
+	if (!perfectGMtrack.closeMatch()){
+	  notClosePtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  notClosePtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
+	}
+
+	//// Fill Histograms exist from first ////////////////////////////////////////////////////////////////////////////////
         pairedMCHTracksEff->Fill(bestMFTTrackMatchID > -1, gmTrack.getPt());
         globalMuonCombinedEff->Fill(label[0].isCorrect(), gmTrack.getPt());
         closeMatchEff->Fill(gmTrack.closeMatch(), gmTrack.getPt());
@@ -736,6 +775,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
           globalMuonCorrectMatchRatio->Fill(label[0].isCorrect(),
                                             gmTrack.getPt());
         }
+
+ //// Reconstructed GMtrack is Correct ////////////////////////////////////////////////////////////////////////////////
         if (label[0].isCorrect()) { // Correct match track: add to histograms
 	  /*
 	  if (gmTrack.getPt()-perfectGMtrack.getPt()){
@@ -749,11 +790,11 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 
 	  }
 	  */
-	  correctPt->Fill(gmTrack.getPt());
-	  correctPt_perfect->Fill(perfectGMtrack.getPt());
-	  correctPt_MC->Fill(thisTrack->GetPt());
-	  correctPtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
-	  correctPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
+	  			correctPt->Fill(gmTrack.getPt());
+	  			correctPt_perfect->Fill(perfectGMtrack.getPt());
+	  			correctPt_MC->Fill(thisTrack->GetPt());
+	  			correctPtEta->Fill(gmTrack.getPt(),gmTrack.getEta());
+	  			correctPtEta_perfect->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
           correctPtEta_MC->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
           nCorrectMatchGMTracks++;
           // pairedMCHTracksEff->Fill(1,gmTrack.getPt());
@@ -779,7 +820,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
                              ->GetName()
                         << "\n";
           }
-	  
+
           else {
             Q_MC = 0;
             std::cout << " => pdgcode ERROR " << Q_MC << "\n";
@@ -1204,9 +1245,10 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   globalMuonCorrectMatchRatio->Write();
   closeMatchEff->Write();
   globalMuonCombinedEff->Write();
-  
+
   allPt->Write();
   pairablePt->Write();
+	closePt->Write();
   correctPt->Write();
   fakePt->Write();
   danglingPt->Write();
@@ -1217,6 +1259,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePt_perfect->Write();
   pairablePt_perfect_reco->Write();
   pairablePt_perfect_replace->Write();
+	closePt_perfect->Write();
+  closePt_perfect_reco->Write();
+  closePt_perfect_replace->Write();
   correctPt_perfect->Write();
   fakePt_perfect->Write();
   danglingPt_perfect->Write();
@@ -1225,6 +1270,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 
   allPt_MC->Write();
   pairablePt_MC->Write();
+	closePt_MC->Write();
   correctPt_MC->Write();
   fakePt_MC->Write();
   danglingPt_MC->Write();
@@ -1234,6 +1280,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   allPtEta->Write();
   pairablePtEta->Write();
   notPairablePtEta->Write();
+	closePtEta->Write();
+  notClosePtEta->Write();
   correctPtEta->Write();
   fakePtEta->Write();
   danglingPtEta->Write();
@@ -1244,6 +1292,9 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePtEta_perfect->Write();
   notPairablePtEta_perfect->Write();
   pairablePtEta_perfect_reco->Write();
+	closePtEta_perfect->Write();
+  notClosePtEta_perfect->Write();
+  closePtEta_perfect_reco->Write();
   correctPtEta_perfect->Write();
   fakePtEta_perfect->Write();
   danglingPtEta_perfect->Write();
@@ -1254,12 +1305,15 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePtEta_MC->Write();
   notPairablePtEta_MC->Write();
   pairablePtEta_MC_reco->Write();
+	closePtEta_MC->Write();
+  notClosePtEta_MC->Write();
+  closePtEta_MC_reco->Write();
   correctPtEta_MC->Write();
   fakePtEta_MC->Write();
   danglingPtEta_MC->Write();
   recoGMPtEta_MC->Add(correctPtEta_MC,fakePtEta_MC);
   recoGMPtEta_MC->Write();
-  
+
   std::cout<<"1"<<endl;
   allPt->Rebin(40);
   std::cout<<"2"<<endl;
@@ -1290,7 +1344,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   pairablePt_MC_reco->Rebin(40);
   std::cout<<"15"<<endl;
   pairablePt_MC->Rebin(40);
-  
+
   /*
 `// Use TH1F for Efficiency
   TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
@@ -1335,7 +1389,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   AlternativePairingEfficiency->SetTitle("Alternative Pairing Efficiency;p_{T}[GeV/c];#epsilon^{MCH/MFT}_{pairing}");
   GlobalPairingPurity->SetTitle("Global Pairing Purity;p_{T}[GeV/c];P^{GM}_{pairing}");
   ClosingMatchingEfficiency->SetTitle("Closing Matching Efficiency;p_{T}[GeV/c];#epsilon_{close}");
-  
+
   //Write Efficiency
   //PairingEfficiency->Write();
   TruePairingEfficiency->Write();
@@ -1344,7 +1398,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   GlobalPairingPurity->Write();
   ClosingMatchingEfficiency->Write();
 
-  
+
   //Use TH2F for pT-Eta Efficiency
   TH2F *PairingEfficiencyPtEta = new TH2F("PairingEfficiencyPtEta","Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
   TH2F *TruePairingEfficiencyPtEta = new TH2F("TruePairingEfficiencyPtEta","True Pairing Efficiency;p_{T}[GeV/c];#eta",200,0,10,200,-4,-2);
@@ -1364,7 +1418,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   AlternativePairingEfficiencyPtEta->SetOption("COLZ");
   GlobalPairingPurityPtEta->SetOption("COLZ");
   ClosingMatchingEfficiencyPtEta->SetOption("COLZ");
-  
+
   /*
   //Use TEfficiency for pT-Eta Efficiency
   //std::cout<<"making PairingEfficiencyPtEta"<<endl;
