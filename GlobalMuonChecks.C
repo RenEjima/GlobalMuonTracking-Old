@@ -1271,7 +1271,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   MCtrackPtEta_PerfectIsNotClose->Write();
 
   recoGMtrackPt_RecoIsCorrect->Write();
-  perfctGMtrackPt_RecoIsCorrect->Write();
+  perfectGMtrackPt_RecoIsCorrect->Write();
 	MCtrackPt_RecoIsCorrect->Write();
   recoGMtrackPtEta_RecoIsCorrect->Write();
   perfectGMtrackPtEta_RecoIsCorrect->Write();
@@ -1280,7 +1280,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	recoGMtrackPt_RecoIsFake->Write();
 	perfectGMtrackPt_RecoIsFake->Write();
   MCtrackPt_RecoIsFake->Write();
-  recpGMtrackPrEta_RecoIsFake->Write();
+  recoGMtrackPrEta_RecoIsFake->Write();
   perfectGMtrackPtEta_RecoIsFake->Write();
   MCtrackPtEta_RecoIsFake->Write();
 
