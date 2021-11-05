@@ -541,7 +541,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   perfectGMtrackPtEta_RecoIsPairable->SetOption("COLZ");
   MCtrackPtEta_RecoIsPairable->SetOption("COLZ");
   recoGMtrackPtEta_RecoIsClose->SetOption("COLZ");
-  perfectGMtrackPtEta_RecoIsClose>SetOption("COLZ");
+  perfectGMtrackPtEta_RecoIsClose->SetOption("COLZ");
   MCtrackPtEta_RecoIsClose->SetOption("COLZ");
 
   perfectGMtrackPtEta_PerfectIsClose->SetOption("COLZ");
@@ -1263,8 +1263,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   recoGMtrackPt_RecoIsNotClose->Write();
 
 	perfectGMtrackPt_PerfectIsClose->Write();
-  perfectGmtrackPrEta_PerfectIsClose->Write();
-  MCtracjPt_PerfectIsClose->Write();
+  perfectGMtrackPtEta_PerfectIsClose->Write();
+  MCtrackPt_PerfectIsClose->Write();
   MCtrackPtEta_PerfectIsClose->Write();
 
   perfectGMtrackPtEta_PerfectIsNotClose->Write();
@@ -1292,20 +1292,20 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   MCtrackPtEta_RecoIsDangling->Write();
 
 	TH1F *MCtrackPt_RecoIsCorrectOrFakeInPairable = new TH1F("MCtrackPt_RecoIsCorrectOrFakeInPairable","MCtrack's p_{T} (Reco is Correct or Fake, Pairable);p_{T}^{MC}[GeV/c];Entry",1000,0,10);
-	TH2F *MCtrackPtEta_RecoIsCorrectInPairable = new TH2F("MCtrackPtEta_RecoIsCorrectInPairable","MCtrack's p_{T}-#eta (Reco is Correct or Fake, Pairable);p_{T}^{MC}[GeV/c];#eta^{MC}",200,0,10,200,-4.0,-2.0);
+	TH2F *MCtrackPtEta_RecoIsCorrectOrFakeInPairable = new TH2F("MCtrackPtEta_RecoIsCorrectOrFakeInPairable","MCtrack's p_{T}-#eta (Reco is Correct or Fake, Pairable);p_{T}^{MC}[GeV/c];#eta^{MC}",200,0,10,200,-4.0,-2.0);
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Add(MCtrackPt_RecoIsCorrect,MCtrackPt_RecoIsFakeInPairable);
-	MCtrackPtEta_RecoIsCorrectInPairable->Add(MCtrackPtEta_RecoIsCorrect,MCtrackPtEta_RecoIsFakeInPairable);
-	MCtrackPtEta_RecoIsCorrectInPairable->SetOption("COLZ");
+	MCtrackPtEta_RecoIsCorrectOrFakeInPairable->Add(MCtrackPtEta_RecoIsCorrect,MCtrackPtEta_RecoIsFakeInPairable);
+	MCtrackPtEta_RecoIsCorrectOrFakeInPairable->SetOption("COLZ");
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Write();
-	MCtrackPtEta_RecoIsCorrectInPairable->Write();
+	MCtrackPtEta_RecoIsCorrectOrFakeInPairable->Write();
 
 	TH1F *recoGMtrackPt_RecoIsCorrectOrFake = new TH1F("recoGMtrackPt_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T} (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];Entry",1000,0,10);
-	TH2F *recoGMtrackPtEta_RecoIsCorrect = new TH2F("recoGMtrackPtEta_RecoIsCorrect","Reconstructed GMtrack's p_{T}-#eta (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];#eta^{reco}",200,0,10,200,-4.0,-2.0);
+	TH2F *recoGMtrackPtEta_RecoIsCorrectOrFake = new TH2F("recoGMtrackPtEta_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T}-#eta (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];#eta^{reco}",200,0,10,200,-4.0,-2.0);
 	recoGMtrackPt_RecoIsCorrectOrFake->Add(recoGMtrackPt_RecoIsCorrect,recoGMtrackPt_RecoIsFake);
-	recoGMtrackPtEta_RecoIsCorrect->Add(recoGMtrackPtEta_RecoIsCorrect,recoGMtrackPtEta_RecoIsFake);
-	recoGMtrackPtEta_RecoIsCorrect->SetOption("COLZ");
+	recoGMtrackPtEta_RecoIsCorrectOrFake->Add(recoGMtrackPtEta_RecoIsCorrect,recoGMtrackPtEta_RecoIsFake);
+	recoGMtrackPtEta_RecoIsCorrectOrFake->SetOption("COLZ");
 	recoGMtrackPt_RecoIsCorrectOrFake->Write();
-	recoGMtrackPtEta_RecoIsCorrect->Write();
+	recoGMtrackPtEta_RecoIsCorrectOrFake->Write();
 
   std::cout<<"1.Rebining N_pairable^MC"<<endl;
   MCtrackPt_RecoIsPairable->Rebin(40);
