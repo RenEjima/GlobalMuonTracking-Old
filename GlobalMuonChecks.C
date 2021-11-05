@@ -1280,7 +1280,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	recoGMtrackPt_RecoIsFake->Write();
 	perfectGMtrackPt_RecoIsFake->Write();
   MCtrackPt_RecoIsFake->Write();
-  recoGMtrackPrEta_RecoIsFake->Write();
+  recoGMtrackPtEta_RecoIsFake->Write();
   perfectGMtrackPtEta_RecoIsFake->Write();
   MCtrackPtEta_RecoIsFake->Write();
 
