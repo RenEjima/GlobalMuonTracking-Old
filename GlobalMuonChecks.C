@@ -1299,6 +1299,14 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Write();
 	MCtrackPtEta_RecoIsCorrectOrFakeInPairable->Write();
 
+	TH1F *MCtrackPt_RecoIsCorrectOrFake = new TH1F("MCtrackPt_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T} (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];Entry",1000,0,10);
+	TH2F *MCtrackPtEta_RecoIsCorrectOrFake = new TH2F("MCtrackPtEta_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T}-#eta (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];#eta^{reco}",200,0,10,200,-4.0,-2.0);
+	MCtrackPt_RecoIsCorrectOrFake->Add(MCtrackPt_RecoIsCorrect,MCtrackPt_RecoIsFake);
+	MCtrackPtEta_RecoIsCorrectOrFake->Add(MCtrackPtEta_RecoIsCorrect,MCtrackPtEta_RecoIsFake);
+	MCtrackPtEta_RecoIsCorrectOrFake->SetOption("COLZ");
+	MCtrackPt_RecoIsCorrectOrFake->Write();
+	MCtrackPtEta_RecoIsCorrectOrFake->Write();
+
 	TH1F *recoGMtrackPt_RecoIsCorrectOrFake = new TH1F("recoGMtrackPt_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T} (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];Entry",1000,0,10);
 	TH2F *recoGMtrackPtEta_RecoIsCorrectOrFake = new TH2F("recoGMtrackPtEta_RecoIsCorrectOrFake","Reconstructed GMtrack's p_{T}-#eta (Reco is Correct or Fake);p_{T}^{reco}[GeV/c];#eta^{reco}",200,0,10,200,-4.0,-2.0);
 	recoGMtrackPt_RecoIsCorrectOrFake->Add(recoGMtrackPt_RecoIsCorrect,recoGMtrackPt_RecoIsFake);
@@ -1357,8 +1365,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
 	PairingEfficiency->Divide(MCtrackPt_RecoIsCorrectOrFake,MCtrackPt_RecoIsPairable);
 	for (int i=0; i<PairingEfficiency->GetNbinsX()+1; i++){
-		PairingEfficiency->SetBinError(i,recoGMPt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
-		FakePairingEfficiency->SetBinError(i,fakePt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+		PairingEfficiency->SetBinError(i,MCtrackPt_RecoIsCorrectOrFake->GetBinError(i)/MCtrackPt_RecoIsPairable->GetBinContent(i));
+		FakePairingEfficiency->SetBinError(i,MCtrackPt_RecoIsFake->GetBinError(i)/MCtrackPt_RecoIsPairable->GetBinContent(i));
 	}
 
   //Use TEfficiency for Efficiency
