@@ -1314,6 +1314,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   std::cout<<"3.Rebining N_True^MC"<<endl;
   MCtrackPt_RecoIsCorrect->Rebin(40);
   std::cout<<"4.Rebining N_Fake^MC"<<endl;
+  MCtrackPt_RecoIsFake->Rebin(40);
+	std::cout<<"4.5.Rebining N_Fake^MC"<<endl;
   MCtrackPt_RecoIsFakeInPairable->Rebin(40);
   std::cout<<"5.Rebining N_True^reco"<<endl;
   recoGMtrackPt_RecoIsCorrect->Rebin(40);
@@ -1325,7 +1327,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Rebin(40);
 	std::cout<<"9.Rebining N_Reconstructed^reco"<<endl;
 	recoGMtrackPt_RecoIsCorrectOrFake->Rebin(40);
-	
+
   /*
 `// Use TH1F for Efficiency
   TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
@@ -1350,31 +1352,42 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   }
   */
 
+	TH1F *FakePairingEfficiency = new TH1F("FakePairingEfficiency","Fake Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{fake}",25,0,10);
+	FakePairingEfficiency->Divide(MCtrackPt_RecoIsFake, MCtrackPt_RecoIsPairable);
+	TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
+	PairingEfficiency->Divide(MCtrackPt_RecoIsCorrectOrFake,MCtrackPt_RecoIsPairable);
+	for (int i=0; i<PairingEfficiency->GetNbinsX()+1; i++){
+		PairingEfficiency->SetBinError(i,recoGMPt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+		FakePairingEfficiency->SetBinError(i,fakePt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
+	}
+
   //Use TEfficiency for Efficiency
-  std::cout<<"making PairingEfficiency"<<endl;
-  TEfficiency *PairingEfficiency = new TEfficiency(*MCtrackPt_RecoIsCorrectOrFakeInPairable,*MCtrackPt_RecoIsPairable);
+  std::cout<<"making PairingEfficiency In Pairable"<<endl;
+  TEfficiency *PairingEfficiencyInPairable = new TEfficiency(*MCtrackPt_RecoIsCorrectOrFakeInPairable,*MCtrackPt_RecoIsPairable);
   std::cout<<"making TruePairingEfficiency"<<endl;
   TEfficiency *TruePairingEfficiency = new TEfficiency(*MCtrackPt_RecoIsCorrect,*MCtrackPt_RecoIsPairable);
-  std::cout<<"making FakePairingEfficiency"<<endl;
-  TEfficiency *FakePairingEfficiency = new TEfficiency(*MCtrackPt_RecoIsFakeInPairable,*MCtrackPt_RecoIsPairable);
+  std::cout<<"making FakePairingEfficiency In Pairable"<<endl;
+  TEfficiency *FakePairingEfficiencyInPairable = new TEfficiency(*MCtrackPt_RecoIsFakeInPairable,*MCtrackPt_RecoIsPairable);
   std::cout<<"making AlternativePairingEfficiency"<<endl;
-  TEfficiency *AlternativePairingEfficiency = new TEfficiency(*MCtrackPt_RecoIsCorrectOrFakeInPairable,*recoGMtrackPt_RecoIsCorrectOrFake);
+  TEfficiency *AlternativePairingEfficiency = new TEfficiency(*MCtrackPt_RecoIsCorrectOrFake,*recoGMTrackAllPt);
   std::cout<<"making GlobalPairingPurity"<<endl;
   TEfficiency *GlobalPairingPurity = new TEfficiency(*recoGMtrackPt_RecoIsCorrect,*recoGMtrackPt_RecoIsCorrectOrFake);
   std::cout<<"making ClosingMatchingEfficiency"<<endl;
   TEfficiency *ClosingMatchingEfficiency = new TEfficiency(*MCtrackPt_RecoIsClose,*MCtrackPt_RecoIsPairable);
 
-  PairingEfficiency->SetTitle("Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{pairing}");
+  PairingEfficiencyInPairable->SetTitle("Pairing Efficiency (InPairable);p_{T}^{MC}[GeV/c];#epsilon^{GM}_{pairing}");
   TruePairingEfficiency->SetTitle("True Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{true}");
-  FakePairingEfficiency->SetTitle("Fake Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{fake}");
+  FakePairingEfficiencyInPairable->SetTitle("Fake Pairing Efficiency (InPairable);p_{T}^{MC}[GeV/c];#epsilon^{GM}_{fake}");
   AlternativePairingEfficiency->SetTitle("Alternative Pairing Efficiency;p_{T}^{reco}[GeV/c];#epsilon^{MCH/MFT}_{pairing}");
   GlobalPairingPurity->SetTitle("Global Pairing Purity;p_{T}^{reco}[GeV/c];P^{GM}_{pairing}");
   ClosingMatchingEfficiency->SetTitle("Closing Matching Efficiency;p_{T}^{MC}[GeV/c];#epsilon_{close}");
 
   //Write Efficiency
   PairingEfficiency->Write();
+	PairingEfficiencyInPairable->Write();
   TruePairingEfficiency->Write();
   FakePairingEfficiency->Write();
+	FakePairingEfficiencyInPairable->Write();
   AlternativePairingEfficiency->Write();
   GlobalPairingPurity->Write();
   ClosingMatchingEfficiency->Write();
@@ -1389,7 +1402,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   TH2F *ClosingMatchingEfficiencyPtEta = new TH2F("ClosingMatchingEfficiencyPtEta","Closing Matching Efficiency;p_{T}^{reco}[GeV/c];#eta^{reco}",200,0,10,200,-4,-2);
   PairingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsCorrectOrFakeInPairable,MCtrackPtEta_RecoIsPairable);
   TruePairingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsCorrect,MCtrackPtEta_RecoIsPairable);
-  FakePairingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsFakeInPairable,MCtrackPtEta_RecoIsPairable);
+  FakePairingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsFake,MCtrackPtEta_RecoIsPairable);
   AlternativePairingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsCorrectOrFakeInPairable,recoGMtrackPtEta_RecoIsCorrectOrFake);
   GlobalPairingPurityPtEta->Divide(recoGMtrackPtEta_RecoIsCorrect,recoGMtrackPtEta_RecoIsCorrectOrFake);
   ClosingMatchingEfficiencyPtEta->Divide(MCtrackPtEta_RecoIsClose,MCtrackPtEta_RecoIsPairable);
