@@ -1314,7 +1314,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
   std::cout<<"3.Rebining N_True^MC"<<endl;
   MCtrackPt_RecoIsCorrect->Rebin(40);
   std::cout<<"4.Rebining N_Fake^MC"<<endl;
-  MCtrackPt_RecoIsFake->Rebin(40);
+  MCtrackPt_RecoIsFakeInPairable->Rebin(40);
   std::cout<<"5.Rebining N_True^reco"<<endl;
   recoGMtrackPt_RecoIsCorrect->Rebin(40);
   std::cout<<"6.Rebining N_Fake^reco"<<endl;
@@ -1325,7 +1325,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Rebin(40);
 	std::cout<<"9.Rebining N_Reconstructed^reco"<<endl;
 	recoGMtrackPt_RecoIsCorrectOrFake->Rebin(40);
-
+	
   /*
 `// Use TH1F for Efficiency
   TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
