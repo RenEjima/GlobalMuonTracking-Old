@@ -418,11 +418,12 @@ void MUONMatcher::runEventMatching()
           //printf("BV: MFT track %d \n", mftTrackID);
           auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
           if (MFTlabel.getEventID() == event) {
+            GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
             if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) {
               gTrack.setPairable();
             }
             if (matchingCut(gTrackTmp, mftTrack)) {
-              GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
+              //GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
               gTrack.setParametersMCH(gTrack.getParameters());
               gTrack.setCovariancesMCH(gTrack.getCovariances());
               gTrack.countCandidate();
@@ -1188,7 +1189,7 @@ bool MUONMatcher::printMatchingPlaneView(int event, int MCHTrackID)
       yPositions.emplace_back(mftTrack.getY());
       pointsColors.emplace_back("black");
       if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()) {
-        gTrack.setPairable();
+        MCHTrack.setPairable();
       }
       if (matchingCut(MCHTrack, mftTrack)) {
         pointsColors.back() = "blue";
@@ -2946,14 +2947,14 @@ void MUONMatcher::runONNXRuntime()
         for (auto mftTrack : mSortedMFTTracks[event]) {
 
 	  auto MFTlabel = mftTrackLabels.at(mftTrackLabelsIDx[event][mftTrackID]);
-
+    GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
 	  if (MFTlabel.getEventID() == event) {
       if (MFTlabel.getTrackID() == MCHlabel[0].getTrackID()){
               gTrack.setPairable();
             }
             if (matchingCut(gTrackTmp, mftTrack)) {
 
-	      GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
+	      //GlobalMuonTrackExt gTrack{MCHtoGlobal(track)};
               gTrack.setParametersMCH(gTrack.getParameters());
               gTrack.setCovariancesMCH(gTrack.getCovariances());
               gTrack.countCandidate();
