@@ -948,7 +948,7 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
           } else{
 	    recoGMtrackPt_RecoIsDangling->Fill(gmTrack.getPt());
 	    perfectGMtrackPt_RecoIsDangling->Fill(perfectGMtrack.getPt());
-	    MCtrackPt_RecoIsFake->Fill(thisTrack->GetPt());
+	    MCtrackPt_RecoIsDangling->Fill(thisTrack->GetPt());
 	    recoGMtrackPtEta_RecoIsDangling->Fill(gmTrack.getPt(),gmTrack.getEta());
 	    perfectGMtrackPtEta_RecoIsDangling->Fill(perfectGMtrack.getPt(),perfectGMtrack.getEta());
       MCtrackPtEta_RecoIsDangling->Fill(thisTrack->GetPt(),atanh(thisTrack->GetStartVertexMomentumZ()/thisTrack->GetP()));
@@ -1335,6 +1335,8 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
 	MCtrackPt_RecoIsCorrectOrFakeInPairable->Rebin(40);
 	std::cout<<"9.Rebining N_Reconstructed^reco"<<endl;
 	recoGMtrackPt_RecoIsCorrectOrFake->Rebin(40);
+	std::cout<<"10.Rebining N_Reconstructed^MC"<<endl;
+	MCtrackPt_RecoIsCorrectOrFake->Rebin(40);
 
   /*
 `// Use TH1F for Efficiency
@@ -1359,15 +1361,22 @@ int GlobalMuonChecks(const std::string trkFile = "GlobalMuonTracks.root",
     ClosingMatchingEfficiency->SetBinError(i,pairablePt->GetBinError(i)/pairablePt_perfect->GetBinContent(i));
   }
   */
-
+	MCtrackPt_RecoIsFake->Sumw2();
+	MCtrackPt_RecoIsPairable->Sumw2();
+	MCtrackPt_RecoIsCorrectOrFake->Sumw2();
 	TH1F *FakePairingEfficiency = new TH1F("FakePairingEfficiency","Fake Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{fake}",25,0,10);
 	FakePairingEfficiency->Divide(MCtrackPt_RecoIsFake, MCtrackPt_RecoIsPairable);
 	TH1F *PairingEfficiency = new TH1F("PairingEfficiency","Pairing Efficiency;p_{T}^{MC}[GeV/c];#epsilon^{GM}_{pairing}",25,0,10);
 	PairingEfficiency->Divide(MCtrackPt_RecoIsCorrectOrFake,MCtrackPt_RecoIsPairable);
+	/*
 	for (int i=0; i<PairingEfficiency->GetNbinsX()+1; i++){
+		PairingEfficiency->SetBinError(i,sqrt(PairingEfficiency->GetBinContent(i)(1.-PairingEfficiency->GetBinContent)));
+
 		PairingEfficiency->SetBinError(i,MCtrackPt_RecoIsCorrectOrFake->GetBinError(i)/MCtrackPt_RecoIsPairable->GetBinContent(i));
 		FakePairingEfficiency->SetBinError(i,MCtrackPt_RecoIsFake->GetBinError(i)/MCtrackPt_RecoIsPairable->GetBinContent(i));
 	}
+	*/
+
 
   //Use TEfficiency for Efficiency
   std::cout<<"making PairingEfficiency In Pairable"<<endl;
